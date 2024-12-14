@@ -8,6 +8,11 @@ namespace KodeRunner
     {
         private static readonly Regex AnsiCodeRegex = new Regex(@"\u001b\[([\d;]*)([A-Za-z])");
 
+        /// <summary>
+        /// Parses ANSI codes to Resonite format.
+        /// </summary>
+        /// <param name="input">The input string containing ANSI codes.</param>
+        /// <returns>The parsed string in Resonite format.</returns>
         public static string ParseToResonite(string input)
         {
             if (string.IsNullOrEmpty(input)) return input;

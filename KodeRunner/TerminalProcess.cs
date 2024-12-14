@@ -12,8 +12,9 @@ namespace KodeRunner
         public event Action<string> OnOutput;
         #pragma warning restore CS8618
 
-
-        // funciton to clear the buffer when the process is done
+        /// <summary>
+        /// Clears the buffer when the process is done.
+        /// </summary>
         public async Task ClearBuffer()
         {
             await Task.Delay(1000);
@@ -30,6 +31,11 @@ namespace KodeRunner
             OnOutput?.Invoke(parsedOutput);
         }
 
+        /// <summary>
+        /// Sends input to the active process.
+        /// </summary>
+        /// <param name="input">The input to send.</param>
+        /// <returns>True if input was sent successfully, otherwise false.</returns>
         public bool SendInput(string input)
         {
             if (ActiveProcesses.Count == 0) return false;
@@ -51,12 +57,20 @@ namespace KodeRunner
             }
         }
 
+        /// <summary>
+        /// Disposes the process asynchronously.
+        /// </summary>
         public async ValueTask DisposeAsync()
         {
             StopAllProcesses();
             await Task.CompletedTask;
         }
 
+        /// <summary>
+        /// Executes a command in the terminal.
+        /// </summary>
+        /// <param name="command">The command to execute.</param>
+        /// <returns>The exit code of the process.</returns>
         public async Task<int> ExecuteCommand(string command)
         {
             var tcs = new TaskCompletionSource<int>();
@@ -145,7 +159,9 @@ namespace KodeRunner
             return await tcs.Task;
         }
 
-        // Add static method to stop all processes
+        /// <summary>
+        /// Stops all active processes.
+        /// </summary>
         public static void StopAllProcesses()
         {
             foreach (var processEntry in ActiveProcesses)

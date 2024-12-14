@@ -13,8 +13,6 @@ using System.Reflection.Metadata;
 
 namespace KodeRunner
 {
-   
-
     class Program
     {
         static Dictionary<string, WebSocket> activeConnections = new Dictionary<string, WebSocket>();
@@ -50,6 +48,10 @@ namespace KodeRunner
         // Add the RunnableManager as a static field
         static RunnableManager runnableManager = new RunnableManager();
 
+        /// <summary>
+        /// Main entry point for the application.
+        /// </summary>
+        /// <param name="args">Command-line arguments.</param>
         static async Task Main(string[] args)
         {
             var server = new HttpListener();

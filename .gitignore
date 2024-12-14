@@ -1,11 +1,4 @@
-koderunner
-bin/
-obj/
-obj
-bin
-*.userprefs
-*.suo
-*.user
-*.sln.docstates
-*.suo
-*.userprefs
+KodeRunner/bin/
+KodeRunner/build/
+KodeRunner/obj/
+docs/*
