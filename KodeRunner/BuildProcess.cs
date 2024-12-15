@@ -89,32 +89,32 @@ namespace KodeRunner
             if (!Directory.Exists(Cpath))
             {
                 Directory.CreateDirectory(Cpath);
-                Logger.Log(Core.LoggerHandle + "created Code path");
+              
             }
             if (!Directory.Exists(Bpath))
             {
                 Directory.CreateDirectory(Bpath);
-                Logger.Log(Core.LoggerHandle + "Created Build path");
+           
             }
             if (!Directory.Exists(Tpath))
             {
                 Directory.CreateDirectory(Tpath);
-                Logger.Log(Core.LoggerHandle + "Created Temp path");
+           
             }
             if (!Directory.Exists(Opath))
             {
                 Directory.CreateDirectory(Opath);
-                Logger.Log(Core.LoggerHandle + "Created Output path");
+
             }
             if (!Directory.Exists(Lpath))
             {
                 Directory.CreateDirectory(Lpath);
-                Logger.Log(Core.LoggerHandle + "Created Log path");
+      
             }
             if (!Directory.Exists(Rpath))
             {
                 Directory.CreateDirectory(Rpath);
-                Logger.Log(Core.LoggerHandle + "Created Runnable path");
+ 
             }
             
 

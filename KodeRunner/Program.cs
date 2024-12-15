@@ -82,6 +82,7 @@ namespace KodeRunner
             buildProcess.SetupCodeDir();
 
             Console.WriteLine("WebSocket server started at ws://localhost:8000/");
+            
             while (true)
             {
                 var context = await server.GetContextAsync();
