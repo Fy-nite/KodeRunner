@@ -1,0 +1,17 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+<ItemGroup>
+<!-- include local dll -->
+    <Reference Include="../../KodeRunner/bin/Debug/net8.0/KodeRunner.dll" />
+  
+</ItemGroup>
+<ItemGroup>
+  <PackageReference Include="PythonNET" Version="3.0.4" />
+</ItemGroup>
+
+</Project>
