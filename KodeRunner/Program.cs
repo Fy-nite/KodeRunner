@@ -55,7 +55,7 @@ namespace KodeRunner
         static async Task Main(string[] args)
         {
             var server = new HttpListener();
-            server.Prefixes.Add("http://localhost:8000/");
+            server.Prefixes.Add("http://localhost:5000/");
 
             Provider.SettingsProvider settings = new Provider.SettingsProvider();
             // Remove the local declaration of runnableManager
