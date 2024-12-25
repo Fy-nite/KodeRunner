@@ -4,14 +4,25 @@ module instal
     use iso_c_binding, only: c_f_pointer, c_ptr, c_char
     implicit none
     interface
-        !  C interface to the download patchnotes function
 
     end interface
 
     contains
-        subroutine fortran_test() bind(c, name="fortran_test")
-            PRINT *, "Hello from Fortran"
-        end subroutine fortran_test
+        subroutine help() bind(c, name="help")
+            PRINT *, ":3"
+            PRINT *, "'help' displays the help text"
+            PRINT *, "'patchnotes' displays the patch notes"
+            PRINT *, ""
+            PRINT *, ""
+            PRINT *, ""
+            PRINT *, ""
+            PRINT *, ""
+            PRINT *, ""
+            PRINT *, ""
+            PRINT *, ""
+            PRINT *, ""
+            PRINT *, ""
+        end subroutine help
 
     
 end module instal

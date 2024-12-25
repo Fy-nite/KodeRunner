@@ -1,15 +1,18 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-extern void fortran_test(void);
-extern void hello(void);
+#include <string.h>
+#include "headers/code.h"
 
 int main() {
     int running = 1;
+    printf("Welcome to the infomation center!\n");
+    printf("Type 'hello' to see a greeting\n");
+    printf("Type 'help' for more commands\n");
     while (running)
     {
         char input[100];
-        printf("Enter a command: ");
+        printf("#: ");
         scanf("%s", input);
         if (strcmp(input, "exit") == 0)
         {

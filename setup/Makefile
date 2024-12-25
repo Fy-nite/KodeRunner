@@ -18,3 +18,5 @@ run: all
 	clear
 	mkdir -p build libs
 	export LD_LIBRARY_PATH=./libs && ./build/kode
+  
+  

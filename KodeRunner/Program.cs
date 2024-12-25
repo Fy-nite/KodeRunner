@@ -3,21 +3,22 @@ using System.Collections.Generic;
 using System.IO;
 using System.Net;
 using System.Net.WebSockets;
+using System.Reflection.Metadata;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
-using Newtonsoft.Json;
 using KodeRunner;
-using System.Reflection.Metadata;
+using Newtonsoft.Json;
 
 namespace KodeRunner
 {
     class Program
     {
-        static Dictionary<string, WebSocket> activeConnections = new Dictionary<string, WebSocket>();
+        static Dictionary<string, WebSocket> activeConnections =
+            new Dictionary<string, WebSocket>();
         static TerminalProcess terminalProcess = new TerminalProcess();
-        
+
         public static List<string> CommentRegexes = new List<string>
         {
             @"^#.*$",
@@ -40,7 +41,7 @@ namespace KodeRunner
             // start of block comment
             @"^/\*.*$",
             // end of block comment
-            @".*\*/$"
+            @".*\*/$",
         };
 
         public static string PMS_VERSION = "1.2.2";
@@ -61,7 +62,7 @@ namespace KodeRunner
             // Remove the local declaration of runnableManager
             // RunnableManager runnableManager = new RunnableManager();
             runnableManager.LoadRunnables();
-            
+
             // check the runnables dir for any dlls
             if (Directory.Exists(Core.RunnableDir))
             {
@@ -71,18 +72,18 @@ namespace KodeRunner
                     runnableManager.LoadRunnablesFromDirectory(Core.RunnableDir);
                 }
             }
-            
+
             runnableManager.print();
             server.Start();
 
-            Console.WriteLine($"KodeRunner v{Core.GetVersion()} started");  
+            Console.WriteLine($"KodeRunner v{Core.GetVersion()} started");
             Console.WriteLine($"PMS v{PMS_VERSION} started");
 
             BuildProcess buildProcess = new BuildProcess();
             buildProcess.SetupCodeDir();
 
-            Console.WriteLine("WebSocket server started at ws://localhost:8000/");
-            
+            Console.WriteLine("WebSocket server started at ws://localhost:5000/");
+
             while (true)
             {
                 var context = await server.GetContextAsync();
@@ -124,11 +125,18 @@ namespace KodeRunner
 
                 while (webSocket.State == WebSocketState.Open)
                 {
-                    var result = await webSocket.ReceiveAsync(new ArraySegment<byte>(buffer), CancellationToken.None);
+                    var result = await webSocket.ReceiveAsync(
+                        new ArraySegment<byte>(buffer),
+                        CancellationToken.None
+                    );
 
                     if (result.MessageType == WebSocketMessageType.Close)
                     {
-                        await webSocket.CloseAsync(WebSocketCloseStatus.NormalClosure, "", CancellationToken.None);
+                        await webSocket.CloseAsync(
+                            WebSocketCloseStatus.NormalClosure,
+                            "",
+                            CancellationToken.None
+                        );
                         activeConnections.Remove("terminput");
                         break;
                     }
@@ -153,6 +161,7 @@ namespace KodeRunner
                 runnableManager.LoadRunnables();
             }
         }
+
         static async Task HandleCodeWebSocket(WebSocket webSocket)
         {
             Console.WriteLine("Code endpoint connected");
@@ -165,11 +174,18 @@ namespace KodeRunner
 
                 while (webSocket.State == WebSocketState.Open)
                 {
-                    var result = await webSocket.ReceiveAsync(new ArraySegment<byte>(buffer), CancellationToken.None);
+                    var result = await webSocket.ReceiveAsync(
+                        new ArraySegment<byte>(buffer),
+                        CancellationToken.None
+                    );
 
                     if (result.MessageType == WebSocketMessageType.Close)
                     {
-                        await webSocket.CloseAsync(WebSocketCloseStatus.NormalClosure, "", CancellationToken.None);
+                        await webSocket.CloseAsync(
+                            WebSocketCloseStatus.NormalClosure,
+                            "",
+                            CancellationToken.None
+                        );
                         activeConnections.Remove("code");
                         break;
                     }
@@ -182,9 +198,14 @@ namespace KodeRunner
                             memoryStream.Seek(0, SeekOrigin.Begin);
                             var message = await ReadFromMemoryStream(memoryStream);
                             var lines = message.Split('\n');
-                            if (lines.Length == 0) continue;
+                            if (lines.Length == 0)
+                                continue;
                             //Console.WriteLine($"Received message: {message}");
-                            var commentLines = lines.Where(line => CommentRegexes.Any(regex => Regex.IsMatch(line, regex))).ToList();
+                            var commentLines = lines
+                                .Where(line =>
+                                    CommentRegexes.Any(regex => Regex.IsMatch(line, regex))
+                                )
+                                .ToList();
                             var commentContent = new StringBuilder();
                             bool inBlockComment = false;
 
@@ -204,7 +225,10 @@ namespace KodeRunner
                                     commentContent.AppendLine(line);
                                     inBlockComment = false;
                                 }
-                                else if (inBlockComment || CommentRegexes.Any(regex => Regex.IsMatch(line, regex)))
+                                else if (
+                                    inBlockComment
+                                    || CommentRegexes.Any(regex => Regex.IsMatch(line, regex))
+                                )
                                 {
                                     commentContent.AppendLine(line);
                                 }
@@ -226,7 +250,9 @@ namespace KodeRunner
 
                             if (projectNameMatch.Success)
                             {
-                                Console.WriteLine($"Project name: {projectNameMatch.Groups[1].Value}");
+                                Console.WriteLine(
+                                    $"Project name: {projectNameMatch.Groups[1].Value}"
+                                );
                                 projectnamefound = true;
                             }
                             if (projectnamefound && filenamefound)
@@ -236,7 +262,11 @@ namespace KodeRunner
                                 string fileName = fileNameMatch.Groups[1].Value.Trim();
 
                                 // Use Path.Combine to construct paths
-                                string project_path = Path.Combine(Core.RootDir, Core.CodeDir, projectName);
+                                string project_path = Path.Combine(
+                                    Core.RootDir,
+                                    Core.CodeDir,
+                                    projectName
+                                );
                                 string file_path = Path.Combine(project_path, fileName);
 
                                 if (!Directory.Exists(project_path))
@@ -258,7 +288,6 @@ namespace KodeRunner
             }
         }
 
-
         public static async Task<string> ReadFromMemoryStream(MemoryStream memoryStream)
         {
             memoryStream.Seek(0, SeekOrigin.Begin);
@@ -270,10 +299,18 @@ namespace KodeRunner
 
         public static async Task SendToWebSocket(string endpoint, string message)
         {
-            if (activeConnections.TryGetValue(endpoint, out WebSocket socket) && socket.State == WebSocketState.Open)
+            if (
+                activeConnections.TryGetValue(endpoint, out WebSocket socket)
+                && socket.State == WebSocketState.Open
+            )
             {
                 var bytes = Encoding.UTF8.GetBytes(message);
-                await socket.SendAsync(new ArraySegment<byte>(bytes), WebSocketMessageType.Text, true, CancellationToken.None);
+                await socket.SendAsync(
+                    new ArraySegment<byte>(bytes),
+                    WebSocketMessageType.Text,
+                    true,
+                    CancellationToken.None
+                );
             }
         }
 
@@ -287,7 +324,6 @@ namespace KodeRunner
             var Project_Build_Systems = "";
             var Project_Output = "";
             var Run_On_Build = false;
-
 
             /*
             template for the json message
@@ -308,11 +344,18 @@ namespace KodeRunner
 
                 while (webSocket.State == WebSocketState.Open)
                 {
-                    var result = await webSocket.ReceiveAsync(new ArraySegment<byte>(buffer), CancellationToken.None);
+                    var result = await webSocket.ReceiveAsync(
+                        new ArraySegment<byte>(buffer),
+                        CancellationToken.None
+                    );
 
                     if (result.MessageType == WebSocketMessageType.Close)
                     {
-                        await webSocket.CloseAsync(WebSocketCloseStatus.NormalClosure, "", CancellationToken.None);
+                        await webSocket.CloseAsync(
+                            WebSocketCloseStatus.NormalClosure,
+                            "",
+                            CancellationToken.None
+                        );
                         activeConnections.Remove("PMS");
                         break;
                     }
@@ -327,7 +370,9 @@ namespace KodeRunner
                             Console.WriteLine($"Received message: {message}");
                             // we now have the json message in the message variable
                             // we can now parse it into a dictionary
-                            var messageDict = JsonConvert.DeserializeObject<Dictionary<string, string>>(message);
+                            var messageDict = JsonConvert.DeserializeObject<
+                                Dictionary<string, string>
+                            >(message);
                             // we can now access the values in the dictionary
                             if (messageDict.TryGetValue("Project_Name", out string project))
                             {
@@ -339,7 +384,12 @@ namespace KodeRunner
                                 Console.WriteLine($"Main File: {mainfile}");
                                 Main_File = mainfile;
                             }
-                            if (messageDict.TryGetValue("Project_Build_Systems", out string buildsystems))
+                            if (
+                                messageDict.TryGetValue(
+                                    "Project_Build_Systems",
+                                    out string buildsystems
+                                )
+                            )
                             {
                                 Console.WriteLine($"Build Systems: {buildsystems}");
                                 Project_Build_Systems = buildsystems;
@@ -354,9 +404,13 @@ namespace KodeRunner
                                 Console.WriteLine($"Run On Build: {runonbuild}");
                                 Run_On_Build = runonbuild == "True";
                             }
-                            
+
                             // Ensure parent directories exist
-                            string project_path = Path.Combine(Core.RootDir, Core.CodeDir, ProjectName);
+                            string project_path = Path.Combine(
+                                Core.RootDir,
+                                Core.CodeDir,
+                                ProjectName
+                            );
                             string file_path = Path.Combine(project_path, Core.ConfigFile);
 
                             // if (!Directory.Exists(project_path))
@@ -365,7 +419,7 @@ namespace KodeRunner
                             // }
 
                             //File.WriteAllText(file_path, message);
-                            
+
                             // we can now build the project using the IRunnableManager
                             // we can use the project name to get the project directory, and the main file to build the project
                             // we can use the build systems to determine how to build the project
@@ -379,9 +433,16 @@ namespace KodeRunner
                             settings.Output = Project_Output;
                             settings.PmsWebSocket = webSocket; // Set the PMS WebSocket
                             // Set the ProjectPath
-                            settings.ProjectPath = Path.Combine(Core.RootDir, Core.CodeDir, ProjectName);
+                            settings.ProjectPath = Path.Combine(
+                                Core.RootDir,
+                                Core.CodeDir,
+                                ProjectName
+                            );
                             // Use the existing runnableManager instance
-                            runnableManager.ExecuteFirstMatchingLanguage(Project_Build_Systems, settings);
+                            runnableManager.ExecuteFirstMatchingLanguage(
+                                Project_Build_Systems,
+                                settings
+                            );
                             runnableManager.print();
                         }
                     }
@@ -393,7 +454,6 @@ namespace KodeRunner
                 activeConnections.Remove("PMS");
                 runnableManager.LoadRunnables();
             }
-
         }
 
         static async Task HandleStopWebSocket(WebSocket webSocket)
@@ -406,11 +466,18 @@ namespace KodeRunner
 
                 while (webSocket.State == WebSocketState.Open)
                 {
-                    var result = await webSocket.ReceiveAsync(new ArraySegment<byte>(buffer), CancellationToken.None);
+                    var result = await webSocket.ReceiveAsync(
+                        new ArraySegment<byte>(buffer),
+                        CancellationToken.None
+                    );
 
                     if (result.MessageType == WebSocketMessageType.Close)
                     {
-                        await webSocket.CloseAsync(WebSocketCloseStatus.NormalClosure, "", CancellationToken.None);
+                        await webSocket.CloseAsync(
+                            WebSocketCloseStatus.NormalClosure,
+                            "",
+                            CancellationToken.None
+                        );
                         activeConnections.Remove("stop");
                         break;
                     }
@@ -419,19 +486,35 @@ namespace KodeRunner
                     {
                         await using (var memoryStream = new MemoryStream())
                         {
-                            await memoryStream.WriteAsync(buffer.AsMemory(0, result.Count), CancellationToken.None);
+                            await memoryStream.WriteAsync(
+                                buffer.AsMemory(0, result.Count),
+                                CancellationToken.None
+                            );
                             var message = await ReadFromMemoryStream(memoryStream);
-                            var messageDict = JsonConvert.DeserializeObject<Dictionary<string, bool>>(message);
+                            var messageDict = JsonConvert.DeserializeObject<
+                                Dictionary<string, bool>
+                            >(message);
 
-                            if (messageDict != null && messageDict.TryGetValue("stopped", out bool shouldStop) && shouldStop)
+                            if (
+                                messageDict != null
+                                && messageDict.TryGetValue("stopped", out bool shouldStop)
+                                && shouldStop
+                            )
                             {
                                 Console.WriteLine("Stopping all processes...");
                                 TerminalProcess.StopAllProcesses();
-                                
+
                                 // Send confirmation back to client
-                                var response = JsonConvert.SerializeObject(new { stopped = true, message = "All processes stopped" });
+                                var response = JsonConvert.SerializeObject(
+                                    new { stopped = true, message = "All processes stopped" }
+                                );
                                 var responseBytes = Encoding.UTF8.GetBytes(response);
-                                await webSocket.SendAsync(new ArraySegment<byte>(responseBytes), WebSocketMessageType.Text, true, CancellationToken.None);
+                                await webSocket.SendAsync(
+                                    new ArraySegment<byte>(responseBytes),
+                                    WebSocketMessageType.Text,
+                                    true,
+                                    CancellationToken.None
+                                );
                             }
                         }
                     }

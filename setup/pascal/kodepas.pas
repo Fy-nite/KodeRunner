@@ -2,7 +2,7 @@ library kodepas;
 
 uses
   SysUtils;
-
+ 
 {$mode objfpc}
 
 function hello(): integer; cdecl;
