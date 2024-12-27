@@ -7,7 +7,7 @@
   </PropertyGroup>
 <ItemGroup>
 <!-- include local dll -->
-    <Reference Include="../runner/bin/Debug/net8.0/KodeRunner.dll" />
+    <Reference Include="../../runner/bin/Debug/net8.0/KodeRunner.dll" />
   
 </ItemGroup>
 <ItemGroup>

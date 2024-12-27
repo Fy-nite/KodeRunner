@@ -9,7 +9,7 @@
       "Runnables/1.0.0": {
         "dependencies": {
           "pythonnet": "3.0.4",
-          "KodeRunner": "1.0.0.0"
+          "KodeRunner": "3.0.0.0"
         },
         "runtime": {
           "Runnables.dll": {}
@@ -91,11 +91,11 @@
           "System.Runtime": "4.3.0"
         }
       },
-      "KodeRunner/1.0.0.0": {
+      "KodeRunner/3.0.0.0": {
         "runtime": {
           "KodeRunner.dll": {
-            "assemblyVersion": "1.0.0.0",
-            "fileVersion": "1.0.0.0"
+            "assemblyVersion": "3.0.0.0",
+            "fileVersion": "3.0.0.0"
           }
         }
       },
@@ -207,7 +207,7 @@
       "path": "system.threading.tasks/4.3.0",
       "hashPath": "system.threading.tasks.4.3.0.nupkg.sha512"
     },
-    "KodeRunner/1.0.0.0": {
+    "KodeRunner/3.0.0.0": {
       "type": "reference",
       "serviceable": false,
       "sha512": ""

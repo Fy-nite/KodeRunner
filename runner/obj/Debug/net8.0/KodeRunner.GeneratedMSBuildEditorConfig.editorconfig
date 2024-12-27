@@ -8,6 +8,6 @@ build_property.PlatformNeutralAssembly =
 build_property.EnforceExtendedAnalyzerRules = 
 build_property._SupportedPlatformList = Linux,macOS,Windows
 build_property.RootNamespace = KodeRunner
-build_property.ProjectDir = /home/charlie/KodeRunner/KodeRunner/
+build_property.ProjectDir = /home/charlie/KodeRunner/runner/
 build_property.EnableComHosting = 
 build_property.EnableGeneratedComInterfaceComImportInterop = 

@@ -1,17 +1,17 @@
 {
   "format": 1,
   "restore": {
-    "/home/charlie/KodeRunner/KodeRunner/KodeRunner.csproj": {}
+    "/home/charlie/KodeRunner/runner/KodeRunner.csproj": {}
   },
   "projects": {
-    "/home/charlie/KodeRunner/KodeRunner/KodeRunner.csproj": {
+    "/home/charlie/KodeRunner/runner/KodeRunner.csproj": {
       "version": "3.0.0",
       "restore": {
-        "projectUniqueName": "/home/charlie/KodeRunner/KodeRunner/KodeRunner.csproj",
+        "projectUniqueName": "/home/charlie/KodeRunner/runner/KodeRunner.csproj",
         "projectName": "KodeRunner",
-        "projectPath": "/home/charlie/KodeRunner/KodeRunner/KodeRunner.csproj",
+        "projectPath": "/home/charlie/KodeRunner/runner/KodeRunner.csproj",
         "packagesPath": "/home/charlie/.nuget/packages/",
-        "outputPath": "/home/charlie/KodeRunner/KodeRunner/obj/",
+        "outputPath": "/home/charlie/KodeRunner/runner/obj/",
         "projectStyle": "PackageReference",
         "configFilePaths": [
           "/home/charlie/.nuget/NuGet/NuGet.Config"

@@ -3,3 +3,4 @@ KodeRunner/build/
 KodeRunner/obj/
 docs/*
 setup/KodeRunner
+runner/obj/*
