@@ -27,10 +27,8 @@ void install() {
         exit(1);
     }
     // if we did, we should move the built files to the output folder
-    system("mv bin/Debug/net8.0/* ../../output");
-    system("./../../output/KodeRunner --create_dirs");
     // and we are done for the first part
-
+    
     // now we need to build the default runnables
     // we need to change the directory to the default runnables
     chdir("../KodeRunnerLibs/Runnables");
@@ -46,10 +44,15 @@ void install() {
         exit(1);
     }
     // if we did, we should move the built files to the output folder
+    system("mv ../../runner/bin/Debug/net8.0/* ../../output/");
+    system("./../../output/KodeRunner --create_dirs");
     system("mv bin/Debug/net8.0/Runnables.dll ../../output/koderunner/Runnables");
     
 
     printf("Done!\n");
     printf("make sure you run the configurator when you run the program to create a configuration file\n");
     printf("We at finite don't want you to break the program so fast.\n");
+    chdir("../../");
+    // remove the repository
+    system("rm -rf KodeRunner");
 }

@@ -49,7 +49,17 @@ namespace KodeRunner
         {
             var config = Configuration.Load();
             Logger.Log("Starting KodeRunner...");
-
+            // setup args for cmd creating dirs
+            if (args.Length > 0)
+            {
+                if (args[0] == "init")
+                {
+                    BuildProcess buildProcess = new BuildProcess();
+                    buildProcess.SetupCodeDir();
+                    // stop the program after creating the dirs
+                    return;
+                }
+            }
             var server = new HttpListener();
             server.Prefixes.Add($"http://{config.WebServer.Host}:{config.WebServer.Port}/");
 
