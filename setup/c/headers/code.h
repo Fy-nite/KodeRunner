@@ -1,2 +1,4 @@
-extern void fortran_test(void);
-extern void hello(void);
+#include "../install.c"
+#include "../update.c"
+void install();
+void update();

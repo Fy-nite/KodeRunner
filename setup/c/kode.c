@@ -18,13 +18,27 @@ int main() {
         {
             running = 0;
         }
+        else if (strcmp(input, "Install") == 0)
+        {
+           install();
+        }
+        else if (strcmp(input, "update") == 0)
+        {
+            printf("Updating...\n");
+            update();
+        }
         else if (strcmp(input, "hello") == 0)
         {
-            hello();
+            printf("Hello!\n");
         }
-        else if (strcmp(input, "fortran") == 0)
+        else if (strcmp(input, "help") == 0)
         {
-            fortran_test();
+            printf("Commands:\n");
+            printf("exit - exit the program\n");
+            printf("Install - install the program\n");
+            printf("update - update the program\n");
+            printf("hello - see a greeting\n");
+            printf("help - see this message\n");
         }
         else
         {
