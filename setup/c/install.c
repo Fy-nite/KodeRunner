@@ -1,5 +1,6 @@
 #include <stdlib.h>
-
+#include <stdio.h>
+#include <unistd.h>
 void install() {
     printf("Installing...\n");
     char *cs_build = "dotnet build";
@@ -19,10 +20,15 @@ void install() {
     // suspecting that we did, we should check regardless
     if (respose != 0) {
         printf("Failed to build the program\n");
+        // remove the output directory
+        system("rm -rf ../../output");
+        // remove the repository
+        system("rm -rf ../KodeRunner");
         exit(1);
     }
     // if we did, we should move the built files to the output folder
     system("mv bin/Debug/net8.0/* ../../output");
+    system("./../../output/KodeRunner --create_dirs");
     // and we are done for the first part
 
     // now we need to build the default runnables
@@ -33,6 +39,10 @@ void install() {
     // check if we did
     if (respose != 0) {
         printf("Failed to build the default runnables\n");
+        // remove the output directory
+        system("rm -rf ../../output");
+        // remove the repository
+        system("rm -rf ../../KodeRunner");
         exit(1);
     }
     // if we did, we should move the built files to the output folder

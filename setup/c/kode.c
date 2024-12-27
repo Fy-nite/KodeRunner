@@ -18,7 +18,7 @@ int main() {
         {
             running = 0;
         }
-        else if (strcmp(input, "Install") == 0)
+        else if (strcmp(input, "install") == 0)
         {
            install();
         }
