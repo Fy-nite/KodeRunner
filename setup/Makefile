@@ -1,9 +1,9 @@
 all: prepare
 	gcc -o build/kode c/kode.c 
 prepare:
-	mkdir -p build libs
+	mkdir -p build 
 
 run: all
 	clear
-	mkdir -p build libs
+	mkdir -p build
 	./build/kode
