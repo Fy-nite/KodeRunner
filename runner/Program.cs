@@ -54,8 +54,8 @@ namespace KodeRunner
             {
                 if (args[0] == "init")
                 {
-                    BuildProcess buildProcess = new BuildProcess();
-                    buildProcess.SetupCodeDir();
+                    BuildProcess initBuildProcess = new BuildProcess();
+                    initBuildProcess.SetupCodeDir();
                     // stop the program after creating the dirs
                     return;
                 }
