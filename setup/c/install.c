@@ -44,9 +44,9 @@ void install() {
         exit(1);
     }
     // if we did, we should move the built files to the output folder
-    system("mv ../../runner/bin/Debug/net8.0/* ../../output/");
-    system("./../../output/KodeRunner --create_dirs");
-    system("mv bin/Debug/net8.0/Runnables.dll ../../output/koderunner/Runnables");
+    system("mv ../../runner/bin/Debug/net8.0/* ../../../output/");
+    system("./../../../output/KodeRunner --init");
+    system("mv bin/Debug/net8.0/Runnables.dll ../../../output/koderunner/Runnables");
     
 
     printf("Done!\n");
