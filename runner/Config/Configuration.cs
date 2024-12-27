@@ -46,9 +46,13 @@ namespace KodeRunner.Config
             var configPath = Core.GetPath(Core.ConfigDir, "config.json");
             var options = new JsonSerializerOptions { WriteIndented = true };
 
-            if (!File.WriteAllText(configPath, JsonSerializer.Serialize(config, options)))
+            try
             {
-                Logger.Log($"Error saving configuration to {configPath}", "Error");
+                File.WriteAllText(configPath, JsonSerializer.Serialize(config, options));
+            }
+            catch (Exception ex)
+            {
+                Logger.Log($"Error saving configuration to {configPath}: {ex.Message}", "Error");
                 // create the directory and try again
                 Directory.CreateDirectory(Core.ConfigDir);
                 File.WriteAllText(configPath, JsonSerializer.Serialize(config, options));
