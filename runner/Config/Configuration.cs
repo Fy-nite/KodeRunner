@@ -29,39 +29,81 @@ namespace KodeRunner.Config
 
         public static Configuration Load()
         {
-            var configPath = Core.GetPath(Core.ConfigDir, "config.json");
+            var configDir = Core.GetPath(Core.ConfigDir);
+            var configPath = Path.Combine(configDir, "config.json");
+
+            // Ensure config directory exists
+            if (!Directory.Exists(configDir))
+            {
+                try
+                {
+                    Directory.CreateDirectory(configDir);
+                }
+                catch (Exception ex)
+                {
+                    Logger.Log($"Failed to create config directory: {ex.Message}", "Error");
+                    return new Configuration();
+                }
+            }
+
+            // Load or create config file
             if (File.Exists(configPath))
             {
                 try
                 {
                     var json = File.ReadAllText(configPath);
-                    return JsonSerializer.Deserialize<Configuration>(json) ?? new Configuration();
+                    var config = JsonSerializer.Deserialize<Configuration>(json);
+                    if (config != null)
+                    {
+                        return config;
+                    }
                 }
-                catch
+                catch (Exception ex)
                 {
-                    return new Configuration();
+                    Logger.Log($"Failed to load configuration: {ex.Message}", "Error");
                 }
             }
 
-            var config = new Configuration();
-            Save(config);
-            return config;
+            // Create default config if loading failed or file doesn't exist
+            var defaultConfig = new Configuration();
+            try
+            {
+                Save(defaultConfig);
+                Logger.Log("Created new default configuration file", "Info");
+            }
+            catch (Exception ex)
+            {
+                Logger.Log($"Failed to save default configuration: {ex.Message}", "Error");
+            }
+
+            return defaultConfig;
         }
 
         public static void Save(Configuration config)
         {
-            var configPath = Core.GetPath(Core.ConfigDir, "config.json");
+            if (config == null)
+            {
+                throw new ArgumentNullException(nameof(config));
+            }
+
+            var configDir = Core.GetPath(Core.ConfigDir);
+            var configPath = Path.Combine(configDir, "config.json");
             var options = new JsonSerializerOptions { WriteIndented = true };
 
             try
             {
-                File.WriteAllText(configPath, JsonSerializer.Serialize(config, options));
+                if (!Directory.Exists(configDir))
+                {
+                    Directory.CreateDirectory(configDir);
+                }
+
+                var json = JsonSerializer.Serialize(config, options);
+                File.WriteAllText(configPath, json);
             }
-            catch
+            catch (Exception ex)
             {
-                // create the directory and try again
-                Directory.CreateDirectory(Core.ConfigDir);
-                File.WriteAllText(configPath, JsonSerializer.Serialize(config, options));
+                Logger.Log($"Failed to save configuration: {ex.Message}", "Error");
+                throw; // Re-throw to allow caller to handle the error
             }
         }
     }

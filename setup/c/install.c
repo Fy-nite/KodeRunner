@@ -1,6 +1,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <unistd.h>
+#include <string.h>
 void install() {
     printf("Installing...\n");
     char *cs_build = "dotnet build";
@@ -32,7 +33,7 @@ void install() {
     // now we need to build the default runnables
     // we need to change the directory to the default runnables
     chdir("../KodeRunnerLibs/Runnables");
-    // and build the default runnables
+    // build the default runnables
     respose = system(cs_build);
     // check if we did
     if (respose != 0) {
@@ -44,15 +45,23 @@ void install() {
         exit(1);
     }
     // if we did, we should move the built files to the output folder
+    // and we are done for the second part
+    // we should move the built files to the output folder
     system("mv ../../runner/bin/Debug/net8.0/* ../../../output/");
-    system("./../../../output/KodeRunner --init");
-    system("mv bin/Debug/net8.0/Runnables.dll ../../../output/koderunner/Runnables");
-    
+    // system("./../../../output/KodeRunner --init");
+    // system("./../../../output/KodeRunner --init");
+    // system("./../../../output/KodeRunner --init");
+    // system("./../../../output/KodeRunner --init");
+    // system("./../../../output/KodeRunner --init");
+    // dammed program does not work
+    system("mkdir ../../../output/koderunner/");
+    system("mkdir ../../../output/koderunner/Runnables");
+    system("mv bin/Debug/net8.0/Runnables.dll ../../../output/koderunner/Runnables/Runnables.dll");
+    system("ls");
+    system("ls ../../../output");
 
-    printf("Done!\n");
-    printf("make sure you run the configurator when you run the program to create a configuration file\n");
-    printf("We at finite don't want you to break the program so fast.\n");
-    chdir("../../");
+    chdir("../../../../");
+
     // remove the repository
     system("rm -rf KodeRunner");
 }
