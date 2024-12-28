@@ -47,19 +47,22 @@ namespace KodeRunner
         /// <param name="args">Command-line arguments.</param>
         static async Task Main(string[] args)
         {
-            var config = Configuration.Load();
-            Logger.Log("Starting KodeRunner...");
             // setup args for cmd creating dirs
             if (args.Length > 0)
             {
-                if (args[0] == "init")
+                if (args[0] == "--init")
                 {
                     BuildProcess initBuildProcess = new BuildProcess();
                     initBuildProcess.SetupCodeDir();
+                    Console.WriteLine("Directories created successfully");
                     // stop the program after creating the dirs
-                    return;
+                    System.Environment.Exit(0);
                 }
+                System.Environment.Exit(0);
             }
+
+            var config = Configuration.Load();
+            Logger.Log("Starting KodeRunner...");
             var server = new HttpListener();
             server.Prefixes.Add($"http://{config.WebServer.Host}:{config.WebServer.Port}/");
 

@@ -30,15 +30,22 @@ namespace KodeRunner.Config
         public static Configuration Load()
         {
             var configPath = Core.GetPath(Core.ConfigDir, "config.json");
-            if (!File.Exists(configPath))
+            if (File.Exists(configPath))
             {
-                var config = new Configuration();
-                Save(config);
-                return config;
+                try
+                {
+                    var json = File.ReadAllText(configPath);
+                    return JsonSerializer.Deserialize<Configuration>(json) ?? new Configuration();
+                }
+                catch
+                {
+                    return new Configuration();
+                }
             }
 
-            return JsonSerializer.Deserialize<Configuration>(File.ReadAllText(configPath))
-                ?? new Configuration();
+            var config = new Configuration();
+            Save(config);
+            return config;
         }
 
         public static void Save(Configuration config)
@@ -50,9 +57,8 @@ namespace KodeRunner.Config
             {
                 File.WriteAllText(configPath, JsonSerializer.Serialize(config, options));
             }
-            catch (Exception ex)
+            catch
             {
-                Logger.Log($"Error saving configuration to {configPath}: {ex.Message}", "Error");
                 // create the directory and try again
                 Directory.CreateDirectory(Core.ConfigDir);
                 File.WriteAllText(configPath, JsonSerializer.Serialize(config, options));
