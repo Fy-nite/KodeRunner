@@ -6,7 +6,7 @@ using System.Text;
 using System.Threading;
 using KodeRunner;
 using Python.Runtime;
-
+using Finite.MicroASM;
 // MicroASM runnable. This is a custom language that is not supported by KodeRunner out of the box.
 // setup a runnable that uses pythonnet to interface with interp.py
 
@@ -27,26 +27,11 @@ public class MicroASMRunnable : IRunnable
         // Capture the PMS WebSocket from settings
         WebSocket pmsWebSocket = settings.PmsWebSocket;
 
-        terminalProcess.OnOutput += async (output) =>
-        {
-            if (pmsWebSocket != null && pmsWebSocket.State == WebSocketState.Open)
-            {
-                var bytes = Encoding.UTF8.GetBytes(output);
-                await pmsWebSocket.SendAsync(
-                    new ArraySegment<byte>(bytes),
-                    WebSocketMessageType.Text,
-                    true,
-                    CancellationToken.None
-                );
-            }
-        };
-
+        // read the MASM file
         var codePath = Path.Combine(Core.RootDir, Core.CodeDir, settings.ProjectName);
         var mainFilePath = Path.Combine(codePath, settings.Main_File);
-        var runCommand = $"python3 interp.py \"{mainFilePath}\"";
-        Console.WriteLine(runCommand);
 
-        terminalProcess.ExecuteCommand(runCommand).Wait();
+       // read the 
     }
 }
 
@@ -56,12 +41,11 @@ public class ModifiedDotnetRunnable : IRunnable
     public string Name => "dotnet";
     public string Language => "csharp";
     public int Priority => 1;
-    public string description => "Executes dotnet projects with metadata";
+    public string description => "Executes C# projects";
 
     public void Execute(Provider.ISettingsProvider settings)
     {
-        Console.WriteLine($"Running dotnet project: {settings.ProjectName}");
-        Console.WriteLine($"Project Path: {settings.ProjectPath}");
+        Console.WriteLine("Running C# project");
 
         var terminalProcess = new TerminalProcess();
 
@@ -82,31 +66,38 @@ public class ModifiedDotnetRunnable : IRunnable
             }
         };
 
-        var buildCommand = $"dotnet build \"{settings.ProjectPath}\"";
-        var runCommand = $"dotnet run --project \"{settings.ProjectPath}\"";
+        var codePath = Path.Combine(Core.RootDir, Core.CodeDir, settings.ProjectName);
+        var outputFilePath = Path.Combine(codePath, settings.Output);
+        var mainFilePath = Path.Combine(codePath, settings.Main_File);
+
+        // Add some color to the output
+        var buildCommand =
+            $"echo '\u001b[32m<color=green>Building C# project...\u001b[0m' && "
+            + $"dotnet build \"{codePath}\"";
 
         terminalProcess.ExecuteCommand(buildCommand).Wait();
 
         if (settings.Run_On_Build)
         {
+            var runCommand =
+                $"echo '\u001b[32mRunning program...\u001b[0m' && " + $"dotnet run \"{codePath}\"";
             terminalProcess.ExecuteCommand(runCommand).Wait();
         }
     }
 }
 
+// python
 [Runnable("python", "python", 0)]
-public class ModifiedPythonRunnable : IRunnable
+public class PythonRunnable : IRunnable
 {
     public string Name => "python";
     public string Language => "python";
     public int Priority => 0;
-    public string description => "Executes python projects with metadata";
+    public string description => "Executes python projects";
 
     public void Execute(Provider.ISettingsProvider settings)
     {
-        Console.WriteLine("Running python with metadata");
-        Console.WriteLine($"Project Name: {settings.ProjectName}");
-        Console.WriteLine($"Project Path: {settings.ProjectPath}");
+        Console.WriteLine("Running python project");
 
         var terminalProcess = new TerminalProcess();
 
@@ -129,11 +120,7 @@ public class ModifiedPythonRunnable : IRunnable
 
         var codePath = Path.Combine(Core.RootDir, Core.CodeDir, settings.ProjectName);
         var mainFilePath = Path.Combine(codePath, settings.Main_File);
-        var runCommand =
-            Environment.OSVersion.Platform == PlatformID.Win32NT
-                ? $"py \"{mainFilePath}\""
-                : $"python3 \"{mainFilePath}\"";
-        Console.WriteLine(runCommand);
+        var runCommand = $"python3 \"{mainFilePath}\"";
 
         terminalProcess.ExecuteCommand(runCommand).Wait();
     }
@@ -141,17 +128,18 @@ public class ModifiedPythonRunnable : IRunnable
 
 // nodejs runnable
 
+
 [Runnable("nodejs", "nodejs", 0)]
-public class NodeJsRunnable : IRunnable
+public class node : IRunnable
 {
-    public string Name => "nodejs";
+    public string Name => "node";
     public string Language => "nodejs";
     public int Priority => 0;
-    public string description => "Executes NodeJS projects";
+    public string description => "Executes nodejs projects";
 
     public void Execute(Provider.ISettingsProvider settings)
     {
-        Console.WriteLine("Running NodeJS project");
+       // Console.WriteLine("Running nodejs project");
 
         var terminalProcess = new TerminalProcess();
 
@@ -173,21 +161,20 @@ public class NodeJsRunnable : IRunnable
         };
 
         var codePath = Path.Combine(Core.RootDir, Core.CodeDir, settings.ProjectName);
+        var outputFilePath = Path.Combine(codePath, settings.Output);
         var mainFilePath = Path.Combine(codePath, settings.Main_File);
-        var runCommand = $"node \"{mainFilePath}\"";
-        Console.WriteLine(runCommand);
-        // check if the project has a package.json file
-        var packageJsonPath = Path.Combine(codePath, "package.json");
 
-        if (settings.RunArgs != null)
-        {
-            // we want to install a package with said name through npm
-            var installCommand = $"npm install {settings.RunArgs}";
-            terminalProcess.ExecuteCommand(installCommand).Wait();
-        }
-        terminalProcess.ExecuteCommand(runCommand).Wait();
+        // Add some color to the output
+        var buildCommand =
+            $"echo '\u001b[32m<color=green> running nodejs project...\u001b[0m' && "
+            + $"node \"{mainFilePath}\"";
+
+        terminalProcess.ExecuteCommand(buildCommand).Wait();
+
+  
     }
 }
+
 
 // C runnable
 [Runnable("c", "clang", 0)]

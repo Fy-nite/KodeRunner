@@ -1,9 +1,10 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Threading;
 
 namespace Finite;
+
 public class MicroASM
 {
     // Register states
@@ -82,8 +83,8 @@ public class MicroASM
 
     private readonly Dictionary<string, string> functionMap = new Dictionary<string, string>
     {
-        { "PRINTS", "print" },
-        { "PRINTI", "print" },
+        { "PRINTS", "printf" },
+        { "PRINTI", "printi" },
         { "play", "play" },
         { "x20", "input" },
         { "x30", "add" },
@@ -179,9 +180,8 @@ public class MicroASM
                     Add(parts[1], parts[2]);
                     break;
                 case "CALL":
-                    CALL(parts[1]);
+                    CALL(parts);
                     break;
-
             }
         }
         else
@@ -194,17 +194,28 @@ public class MicroASM
 
     private void CALL(string[] args)
     {
-        string func = args[0];
+        string func = args[1];
         if (functionMap.ContainsKey(func))
         {
             string mappedFunc = functionMap[func];
-            GetType().GetMethod(mappedFunc).Invoke(this, args[1:]);
+            var method = GetType()
+                .GetMethod(
+                    mappedFunc,
+                    System.Reflection.BindingFlags.NonPublic
+                        | System.Reflection.BindingFlags.Instance
+                );
+            if (method == null)
+            {
+                throw new ArgumentException($"Method not found: {mappedFunc}");
+            }
+            method.Invoke(this, new object[] { args[2] });
         }
         else
         {
             throw new ArgumentException($"Invalid function: {func}");
         }
     }
+
     private void Mov(string dest, string src)
     {
         int value = int.TryParse(src, out int numValue) ? numValue : GetRegisterValue(src);
@@ -217,7 +228,12 @@ public class MicroASM
         int srcValue = GetRegisterValue(src);
         SetRegisterValue(dest, destValue + srcValue);
     }
-    private void PRINTI(string dest)
+
+    private void printi(string dest)
+    {
+        Console.WriteLine(GetRegisterValue(dest));
+    }
+    private void printf(string dest)
     {
         Console.WriteLine(GetRegisterValue(dest));
     }
@@ -244,5 +260,21 @@ public class MicroASM
         return $"RAX: {RAX}\nRBX: {RBX}\nRCX: {RCX}\nRDX: {RDX}\n"
             + $"RSI: {RSI}\nRDI: {RDI}\nRBP: {RBP}\nRSP: {RSP}\n"
             + $"RIP: {RIP}\nRFLAGS: {RFLAGS}\nOutput: {Output}";
+    }
+}
+
+public class Program
+{
+    public static void Main()
+    {
+        var microASM = new MicroASM();
+        microASM.RunCode(
+            @" 
+            MOV RAX 10 
+            MOV RBX 20 
+            ADD RAX RBX 
+            CALL PRINTI RAX
+        "
+        );
     }
 }

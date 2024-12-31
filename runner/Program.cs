@@ -614,6 +614,33 @@ namespace KodeRunner
             }
         }
 
+        static async Task<string> ReadFromMemoryStream(MemoryStream memoryStream)
+        {
+            memoryStream.Seek(0, SeekOrigin.Begin);
+            using (var reader = new StreamReader(memoryStream, Encoding.UTF8))
+            {
+                return await reader.ReadToEndAsync();
+            }
+        }
+
+        static async Task SendToWebSocket(string type, string message)
+        {
+            var response = JsonConvert.SerializeObject(new { type, message });
+            var responseBytes = Encoding.UTF8.GetBytes(response);
+            foreach (var connection in connectionManager.ListConnections())
+            {
+                if (connection.Type == type)
+                {
+                    await connection.Socket.SendAsync(
+                        new ArraySegment<byte>(responseBytes),
+                        WebSocketMessageType.Text,
+                        true,
+                        CancellationToken.None
+                    );
+                }
+            }
+        }
+
         static async Task HandleStopWebSocket(
             WebSocket webSocket,
             string connectionId,
