@@ -111,7 +111,11 @@ namespace KodeRunner
                                 connectionId,
                                 $"Welcome to KodeRunner Code Service\nYour connection ID: {connectionId}"
                             );
-                            _ = HandleCodeWebSocket(wsContext.WebSocket, connectionId);
+                            _ = HandleCodeWebSocket(
+                                wsContext.WebSocket,
+                                connectionId,
+                                config.BufferSize
+                            );
                             break;
                         case "/PMS":
                             connectionId = connectionManager.AddConnection(
@@ -122,7 +126,11 @@ namespace KodeRunner
                                 connectionId,
                                 $"Welcome to KodeRunner!\nPMS Version: {PMS_VERSION}\nYour connection ID: {connectionId}\n"
                             );
-                            _ = HandlePmsWebSocket(wsContext.WebSocket, connectionId);
+                            _ = HandlePmsWebSocket(
+                                wsContext.WebSocket,
+                                connectionId,
+                                config.BufferSize
+                            );
                             break;
                         case "/stop":
                             connectionId = connectionManager.AddConnection(
@@ -133,7 +141,11 @@ namespace KodeRunner
                                 connectionId,
                                 $"Welcome to KodeRunner Stop Service\nYour connection ID: {connectionId}\n"
                             );
-                            _ = HandleStopWebSocket(wsContext.WebSocket, connectionId);
+                            _ = HandleStopWebSocket(
+                                wsContext.WebSocket,
+                                connectionId,
+                                config.BufferSize
+                            );
                             break;
                         case "/terminput":
                             connectionId = connectionManager.AddConnection(
@@ -144,7 +156,11 @@ namespace KodeRunner
                                 connectionId,
                                 $"Welcome to KodeRunner Terminal Input Service\nYour connection ID: {connectionId}\n"
                             );
-                            _ = HandleTerminalInput(wsContext.WebSocket, connectionId);
+                            _ = HandleTerminalInput(
+                                wsContext.WebSocket,
+                                connectionId,
+                                config.BufferSize
+                            );
                             break;
                         default:
                             Console.WriteLine($"Invalid endpoint: {path}");
@@ -214,11 +230,15 @@ namespace KodeRunner
             Console.WriteLine();
         }
 
-        static async Task HandleTerminalInput(WebSocket webSocket, string connectionId)
+        static async Task HandleTerminalInput(
+            WebSocket webSocket,
+            string connectionId,
+            int bufferSize
+        )
         {
             try
             {
-                var buffer = new byte[8192];
+                var buffer = new byte[bufferSize];
 
                 while (webSocket.State == WebSocketState.Open)
                 {
@@ -253,14 +273,18 @@ namespace KodeRunner
             }
         }
 
-        static async Task HandleCodeWebSocket(WebSocket webSocket, string connectionId)
+        static async Task HandleCodeWebSocket(
+            WebSocket webSocket,
+            string connectionId,
+            int bufferSize
+        )
         {
             Console.WriteLine("Code endpoint connected");
             var projectnamefound = false;
             var filenamefound = false;
             try
             {
-                var buffer = new byte[8192];
+                var buffer = new byte[bufferSize];
 
                 while (webSocket.State == WebSocketState.Open)
                 {
@@ -378,33 +402,11 @@ namespace KodeRunner
             }
         }
 
-        public static async Task<string> ReadFromMemoryStream(MemoryStream memoryStream)
-        {
-            _ = memoryStream.Seek(0, SeekOrigin.Begin);
-            using (var reader = new StreamReader(memoryStream, Encoding.UTF8))
-            {
-                return await reader.ReadToEndAsync();
-            }
-        }
-
-        public static async Task SendToWebSocket(string endpoint, string message)
-        {
-            if (
-                activeConnections.TryGetValue(endpoint, out WebSocket socket)
-                && socket.State == WebSocketState.Open
-            )
-            {
-                var bytes = Encoding.UTF8.GetBytes(message);
-                await socket.SendAsync(
-                    new ArraySegment<byte>(bytes),
-                    WebSocketMessageType.Text,
-                    true,
-                    CancellationToken.None
-                );
-            }
-        }
-
-        static async Task HandlePmsWebSocket(WebSocket webSocket, string connectionId)
+        static async Task HandlePmsWebSocket(
+            WebSocket webSocket,
+            string connectionId,
+            int bufferSize
+        )
         {
             Console.WriteLine("PMS endpoint connected");
             _ = SendToWebSocket(
@@ -433,7 +435,7 @@ namespace KodeRunner
 
             try
             {
-                var buffer = new byte[8192];
+                var buffer = new byte[bufferSize];
 
                 while (webSocket.State == WebSocketState.Open)
                 {
@@ -612,12 +614,16 @@ namespace KodeRunner
             }
         }
 
-        static async Task HandleStopWebSocket(WebSocket webSocket, string connectionId)
+        static async Task HandleStopWebSocket(
+            WebSocket webSocket,
+            string connectionId,
+            int bufferSize
+        )
         {
             Console.WriteLine("Stop endpoint connected");
             try
             {
-                var buffer = new byte[1024];
+                var buffer = new byte[bufferSize];
 
                 while (webSocket.State == WebSocketState.Open)
                 {
