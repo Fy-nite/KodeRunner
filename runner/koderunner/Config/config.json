@@ -1,0 +1,18 @@
+{
+  "ProcessTimeoutSeconds": 30,
+  "LogLevel": "Info",
+  "BufferSize": 8192,
+  "EnableDebugMode": false,
+  "WebServer": {
+    "Host": "localhost",
+    "Port": 5000,
+    "MaxConnections": 100
+  },
+  "Logging": {
+    "EnableFileLogging": true,
+    "EnableConsoleLogging": true,
+    "LogDirectory": "Logs",
+    "MaxLogFiles": 10,
+    "MaxLogSize": 10485760
+  }
+}
