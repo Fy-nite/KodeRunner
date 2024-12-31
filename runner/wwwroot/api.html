@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KodeRunner - API Reference</title>
+    <style>
+        /* ... Same base styles as index.html ... */
+        .endpoint {
+            margin-bottom: 2rem;
+            padding: 1rem;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        .endpoint h3 {
+            color: #333;
+            margin-top: 0;
+        }
+        .method-tag {
+            display: inline-block;
+            padding: 0.25rem 0.5rem;
+            border-radius: 3px;
+            color: white;
+            font-weight: bold;
+        }
+        .websocket {
+            background-color: #7bc043;
+        }
+        .http {
+            background-color: #4a90e2;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>KodeRunner API Reference</h1>
+    </div>
+    <div class="nav">
+        <a href="index.html">Home</a>
+        <a href="classes.html">Core Classes</a>
+        <a href="interfaces.html">Interfaces</a>
+        <a href="api.html">API Reference</a>
+    </div>
+    <div class="container">
+        <div class="content">
+            <h2>WebSocket Endpoints</h2>
+            
+            <div class="endpoint">
+                <span class="method-tag websocket">WebSocket</span>
+                <h3>/code</h3>
+                <p>Handles code submission and processing.</p>
+                <h4>Expected Message Format for something like C:</h4>
+                <pre>
+/*
+File_name: main.c
+Project: MyProject
+Build: gcc -o main main.c
+Run: ./main 
+*/
+// Your code here
+
+// noting that build and run are optional and can be omitted
+</pre>
+            </div>
+
+            <div class="endpoint">
+                <span class="method-tag websocket">WebSocket</span>
+                <h3>/PMS</h3>
+                <p>Project Management System endpoint.</p>
+                <h4>Expected Message Format:</h4>
+                <pre>
+{
+    "PMS_System": "1.2.0",
+    "Project_Name": "MyProject",
+    "Main_File": "main.c",
+    "Project_Build_Systems": "cmake",
+    "Project_Output": "main",
+    "Run_On_Build": "True"
+}</pre>
+            </div>
+
+            <div class="endpoint">
+                <span class="method-tag websocket">WebSocket</span>
+                <h3>/stop</h3>
+                <p>Controls process termination.</p>
+                <h4>Expected Message Format:</h4>
+                <pre>
+{
+    "stopped": true
+}</pre>
+            </div>
+
+            <div class="endpoint">
+                <span class="method-tag websocket">WebSocket</span>
+                <h3>/terminput</h3>
+                <p>Handles terminal input commands.</p>
+                <h4>Usage:</h4>
+                <p>Send terminal commands as text messages through this WebSocket connection.</p>
+            </div>
+            <div class="endpoint">
+                <span class="method-tag http">HTTP</span>
+                <h3>/</h3>
+                <p>Root endpoint for the KodeRunner Documentation</p>
+                <h4>Usage:</h4>
+                <p>visit the endpoint set inside the .env file to get the documentation :3</p>
+                
+            </div>
+        </div>
+    </div>
+</body>
+</html>

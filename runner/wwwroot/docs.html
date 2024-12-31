@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KodeRunner Documentation</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f4f4f4;
+        }
+        .container {
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background-color: #fff;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+        h1, h2 {
+            color: #333;
+        }
+        p {
+            line-height: 1.6;
+        }
+        code {
+            background-color: #f4f4f4;
+            padding: 2px 4px;
+            border-radius: 4px;
+        }
+        ul {
+            list-style-type: none;
+            padding: 0;
+        }
+        li {
+            margin-bottom: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>KodeRunner Documentation</h1>
+        <p>Welcome to the KodeRunner documentation. This document provides a high-level overview of the classes and files defined in the codebase.</p>
+        
+        <h2>Core.cs</h2>
+        <p>Defines the core settings and configuration paths for the KodeRunner project.</p>
+        <ul>
+            <li><code>GetVersion()</code>: Returns the version of the assembly.</li>
+            <li><code>RootDir</code>: Base directory for all KodeRunner files.</li>
+            <li><code>ConfigPath</code>: Path to the configuration file.</li>
+        </ul>
+
+        <h2>TerminalCodeParser.cs</h2>
+        <p>Parses terminal output and converts ANSI codes to HTML color codes.</p>
+        <ul>
+            <li><code>ParseToResonite()</code>: Parses ANSI codes in the input string.</li>
+            <li><code>ParseColorCode()</code>: Converts ANSI color codes to HTML color tags.</li>
+        </ul>
+
+        <h2>IRunnable.cs</h2>
+        <p>Defines the interface and attributes for runnable classes.</p>
+        <ul>
+            <li><code>IRunnable</code>: Interface for all runnables.</li>
+            <li><code>RunnableAttribute</code>: Attribute to be used on classes that implement IRunnable.</li>
+        </ul>
+
+        <h2>Provider.cs</h2>
+        <p>Manages settings and configurations for runnables.</p>
+        <ul>
+            <li><code>ISettingsProvider</code>: Interface for the settings provider.</li>
+            <li><code>SettingsProvider</code>: Struct implementing the ISettingsProvider interface.</li>
+        </ul>
+
+        <h2>BuildProcess.cs</h2>
+        <p>Handles the build process for various programming languages.</p>
+        <ul>
+            <li><code>BuildProcess</code>: Class that executes the build process.</li>
+            <li><code>SetupCodeDir()</code>: Sets up the necessary directories for the build process.</li>
+            <li><code>SendInput()</code>: Sends input to the build process.</li>
+        </ul>
+
+        <h2>TerminalProcess.cs</h2>
+        <p>Manages terminal input and output.</p>
+        <ul>
+            <li><code>ExecuteCommand()</code>: Executes a command in the terminal.</li>
+            <li><code>SendInput()</code>: Sends input to the terminal process.</li>
+            <li><code>StopAllProcesses()</code>: Stops all active terminal processes.</li>
+        </ul>
+
+        <h2>RunnableManager.cs</h2>
+        <p>Loads and executes runnable code snippets.</p>
+        <ul>
+            <li><code>LoadRunnables()</code>: Loads runnables from the current domain assemblies.</li>
+            <li><code>ExecuteAll()</code>: Executes all registered runnables.</li>
+            <li><code>ExecuteFirstMatchingLanguage()</code>: Executes the first runnable matching the specified language.</li>
+        </ul>
+
+        <h2>Program.cs</h2>
+        <p>Main entry point for the KodeRunner application.</p>
+        <ul>
+            <li><code>Main()</code>: Starts the HTTP and WebSocket server.</li>
+            <li><code>HandleCodeWebSocket()</code>: Handles WebSocket connections for code submissions.</li>
+            <li><code>HandlePmsWebSocket()</code>: Handles WebSocket connections for project management system.</li>
+            <li><code>HandleStopWebSocket()</code>: Handles WebSocket connections for stopping processes.</li>
+        </ul>
+
+        <h2>Envars.cs</h2>
+        <p>Manages environment variables for the KodeRunner project.</p>
+        <ul>
+            <li><code>Envars</code>: Class that reads environment variables from a .env file.</li>
+        </ul>
+    </div>
+</body>
+</html>
