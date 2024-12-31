@@ -137,19 +137,19 @@
     ]
   },
   "packageFolders": {
-    "/home/charlie/.nuget/packages/": {}
+    "/home/carson/.nuget/packages/": {}
   },
   "project": {
     "version": "3.0.0",
     "restore": {
-      "projectUniqueName": "/home/charlie/KodeRunner/runner/KodeRunner.csproj",
+      "projectUniqueName": "/home/carson/KodeRunner/runner/KodeRunner.csproj",
       "projectName": "KodeRunner",
-      "projectPath": "/home/charlie/KodeRunner/runner/KodeRunner.csproj",
-      "packagesPath": "/home/charlie/.nuget/packages/",
-      "outputPath": "/home/charlie/KodeRunner/runner/obj/",
+      "projectPath": "/home/carson/KodeRunner/runner/KodeRunner.csproj",
+      "packagesPath": "/home/carson/.nuget/packages/",
+      "outputPath": "/home/carson/KodeRunner/runner/obj/",
       "projectStyle": "PackageReference",
       "configFilePaths": [
-        "/home/charlie/.nuget/NuGet/NuGet.Config"
+        "/home/carson/.nuget/NuGet/NuGet.Config"
       ],
       "originalTargetFrameworks": [
         "net8.0"
@@ -167,7 +167,13 @@
         "warnAsError": [
           "NU1605"
         ]
-      }
+      },
+      "restoreAuditProperties": {
+        "enableAudit": "true",
+        "auditLevel": "low",
+        "auditMode": "direct"
+      },
+      "SdkAnalysisLevel": "9.0.100"
     },
     "frameworks": {
       "net8.0": {
@@ -200,7 +206,15 @@
         "downloadDependencies": [
           {
             "name": "Microsoft.AspNetCore.App.Ref",
-            "version": "[8.0.10, 8.0.10]"
+            "version": "[8.0.11, 8.0.11]"
+          },
+          {
+            "name": "Microsoft.NETCore.App.Host.linux-x64",
+            "version": "[8.0.11, 8.0.11]"
+          },
+          {
+            "name": "Microsoft.NETCore.App.Ref",
+            "version": "[8.0.11, 8.0.11]"
           }
         ],
         "frameworkReferences": {
@@ -208,7 +222,7 @@
             "privateAssets": "all"
           }
         },
-        "runtimeIdentifierGraphPath": "/usr/share/dotnet/sdk/8.0.110/PortableRuntimeIdentifierGraph.json"
+        "runtimeIdentifierGraphPath": "/usr/share/dotnet/sdk/9.0.101/PortableRuntimeIdentifierGraph.json"
       }
     }
   },
