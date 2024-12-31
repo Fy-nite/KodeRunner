@@ -1,8 +1,8 @@
-runner/bin/*
-runner/build/*
-runner/obj/*
+runner/bin
+runner/build
+runner/obj
 docs/*
 setup/KodeRunner/*
-runner/obj/*
+runner/obj
 .devcontainer/*
 .devcontainer.json
