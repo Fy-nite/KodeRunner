@@ -221,10 +221,12 @@ namespace KodeRunner
         static void ShowHelp()
         {
             Console.WriteLine("Available commands:");
-            Console.WriteLine("  list              - List all active connections");
-            Console.WriteLine("  disconnect <id>    - Disconnect a specific connection");
+            Console.WriteLine("  list                  - List all active connections");
+            Console.WriteLine("  disconnect <id>       - Disconnect a specific connection");
             Console.WriteLine("  disconnecttype <type> - Disconnect all connections of a type");
-            Console.WriteLine("  help              - Show this help message");
+            Console.WriteLine("  import <project file> - Import a .KRproject file");
+            Console.WriteLine("  export <project name> - Export a project into a .KRproject file");
+            Console.WriteLine("  help                  - Show this help message");
         }
 
         static void ListConnections()
