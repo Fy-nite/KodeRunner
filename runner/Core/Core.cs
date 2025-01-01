@@ -36,6 +36,7 @@ namespace KodeRunner
         public static string LogDir = "Logs";
         public static string ConfigDir = "Config";
         public static string ConfigFile = "config.json";
+        public static string ExportDir = "Exports";
 
         // Updated to use Path.Combine for proper path construction
         public static string ConfigPath = Path.Combine(RootDir, ConfigDir, ConfigFile);

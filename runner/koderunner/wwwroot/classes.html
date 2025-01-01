@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KodeRunner - Core Classes</title>
+    <style>
+        /* ... Same base styles as index.html ... */
+        .class-section {
+            margin-bottom: 2rem;
+            padding: 1rem;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        .method {
+            margin-left: 1rem;
+            padding: 0.5rem;
+            background-color: #f8f8f8;
+        }
+        code {
+            background-color: #f4f4f4;
+            padding: 2px 4px;
+            border-radius: 3px;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>KodeRunner Core Classes</h1>
+    </div>
+    <div class="nav">
+        <a href="index.html">Home</a>
+        <a href="classes.html">Core Classes</a>
+        <a href="interfaces.html">Interfaces</a>
+        <a href="api.html">API Reference</a>
+    </div>
+    <div class="container">
+        <div class="content">
+            <div class="class-section">
+                <h2>Core</h2>
+                <p>Central configuration and version management class.</p>
+                <div class="method">
+                    <h4>GetVersion()</h4>
+                    <p>Returns the current version of KodeRunner.</p>
+                </div>
+                <h4>Key Properties</h4>
+                <ul>
+                    <li><code>RootDir</code>: Base directory for KodeRunner files</li>
+                    <li><code>CodeDir</code>: Directory for project code</li>
+                    <li><code>BuildDir</code>: Directory for build outputs</li>
+                </ul>
+            </div>
+
+            <div class="class-section">
+                <h2>RunnableManager</h2>
+                <p>Manages the loading and execution of runnable components.</p>
+                <div class="method">
+                    <h4>LoadRunnables()</h4>
+                    <p>Loads all available runnables from assemblies.</p>
+                </div>
+                <div class="method">
+                    <h4>ExecuteFirstMatchingLanguage()</h4>
+                    <p>Executes the first runnable that matches the specified language. this also does partial matching so make sure to get your users to fully type qulify the name</p>
+                </div>
+            </div>
+
+            <div class="class-section">
+                <h2>BuildProcess</h2>
+                <p>Handles build process execution and management.</p>
+                <div class="method">
+                    <h4>SetupCodeDir()</h4>
+                    <p>Sets up the required directory structure.</p>
+                </div>
+                <div class="method">
+                    <h4>SendInput()</h4>
+                    <p>Sends input to the build process.</p>
+                </div>
+            </div>
+
+            <div class="class-section">
+                <h2>TerminalCodeParser</h2>
+                <p>Parses and converts terminal codes.</p>
+                <div class="method">
+                    <h4>ParseToResonite()</h4>
+                    <p>Converts ANSI codes to HTML color codes.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
