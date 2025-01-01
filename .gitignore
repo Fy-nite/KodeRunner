@@ -8,3 +8,4 @@ runner/obj
 .devcontainer.json
 runner/koderunner/*
 !runner/koderunner/Config/config.json
+!runner/koderunner/Runnables/Runnables.dll
