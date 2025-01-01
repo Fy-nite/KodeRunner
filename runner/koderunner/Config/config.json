@@ -1,6 +1,6 @@
 {
   "ProcessTimeoutSeconds": 30,
-  "LogLevel": "Info",
+  "LogLevel": "debug",
   "BufferSize": 8192,
   "EnableDebugMode": false,
   "WebServer": {
