@@ -5,12 +5,14 @@ namespace KodeRunner
     class Implementations {
         public static void Import(string FilePath)
         {
+            string ProjectName = Path.GetFileNameWithoutExtension(FilePath);
             string ExportPath = Path.Combine(
                 Core.RootDir,
                 Core.CodeDir,
-                Path.GetFileNameWithoutExtension(FilePath)
+                ProjectName
             );
             ZipFile.ExtractToDirectory(FilePath, ExportPath);
+            Logger.Log($"Imported {FilePath} as project {ProjectName}");
         }
         public static void Export(string ProjectName)
         {
