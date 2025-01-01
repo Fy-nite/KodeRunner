@@ -6,6 +6,5 @@ setup/KodeRunner/*
 runner/obj
 .devcontainer/*
 .devcontainer.json
-runner/koderunner/Exports/*
-runner/koderunner/Logs/*
-runner/koderunner/Projects/*
+runner/koderunner/*
+!runner/koderunner/Config/config.json
