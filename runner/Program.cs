@@ -179,6 +179,7 @@ namespace KodeRunner
                     continue;
 
                 var parts = command.Split(' ');
+            try {
                 switch (parts[0].ToLower())
                 {
                     case "list":
@@ -199,20 +200,33 @@ namespace KodeRunner
                     case "help":
                         ShowHelp();
                         break;
+                    case "import":
+                        Implementations.Import(parts[1]);
+                        break;
+                    case "export":
+                        Implementations.Export(parts[1]);
+                        break;
                     default:
                         Console.WriteLine("Unknown command. Type 'help' for available commands.");
                         break;
                 }
+            } 
+            catch (Exception ex)
+            {
+                Logger.Log($"Error while processing command {parts[0]}: {ex.Message}", "error");
+            }
             }
         }
 
         static void ShowHelp()
         {
             Console.WriteLine("Available commands:");
-            Console.WriteLine("  list              - List all active connections");
-            Console.WriteLine("  disconnect <id>    - Disconnect a specific connection");
+            Console.WriteLine("  list                  - List all active connections");
+            Console.WriteLine("  disconnect <id>       - Disconnect a specific connection");
             Console.WriteLine("  disconnecttype <type> - Disconnect all connections of a type");
-            Console.WriteLine("  help              - Show this help message");
+            Console.WriteLine("  import <project file> - Import a .KRproject file");
+            Console.WriteLine("  export <project name> - Export a project into a .KRproject file");
+            Console.WriteLine("  help                  - Show this help message");
         }
 
         static void ListConnections()
@@ -381,12 +395,12 @@ namespace KodeRunner
                                     Core.CodeDir,
                                     projectName
                                 );
-                                string file_path = Path.Combine(project_path, fileName);
 
                                 if (!Directory.Exists(project_path))
                                 {
                                     _ = Directory.CreateDirectory(project_path);
                                 }
+                                string file_path = Path.Combine(project_path, fileName);
 
                                 File.WriteAllText(file_path, message);
                             }
@@ -550,12 +564,12 @@ namespace KodeRunner
                             );
                             string file_path = Path.Combine(project_path, Core.ConfigFile);
 
-                            // if (!Directory.Exists(project_path))
-                            // {
-                            //     Directory.CreateDirectory(project_path);
-                            // }
+                            if (!Directory.Exists(project_path))
+                            {
+                                Directory.CreateDirectory(project_path);
+                            }
 
-                            //File.WriteAllText(file_path, message);
+                            File.WriteAllText(file_path, message);
 
                             // we can now build the project using the IRunnableManager
                             // we can use the project name to get the project directory, and the main file to build the project
@@ -713,6 +727,31 @@ namespace KodeRunner
                 Console.WriteLine($"WebSocket error: {ex.Message}");
                 connectionManager.RemoveConnection(connectionId);
                 runnableManager.LoadRunnables();
+            }
+        }
+        public static async Task<string> ReadFromMemoryStream(MemoryStream memoryStream)
+        {
+            _ = memoryStream.Seek(0, SeekOrigin.Begin);
+            using (var reader = new StreamReader(memoryStream, Encoding.UTF8))
+            {
+                return await reader.ReadToEndAsync();
+            }
+        }
+
+        public static async Task SendToWebSocket(string endpoint, string message)
+        {
+            if (
+                activeConnections.TryGetValue(endpoint, out WebSocket socket)
+                && socket.State == WebSocketState.Open
+            )
+            {
+                var bytes = Encoding.UTF8.GetBytes(message);
+                await socket.SendAsync(
+                    new ArraySegment<byte>(bytes),
+                    WebSocketMessageType.Text,
+                    true,
+                    CancellationToken.None
+                );
             }
         }
     }
