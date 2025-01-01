@@ -3,15 +3,16 @@ using System.IO.Compression;
 namespace KodeRunner
 {
     class Implementations {
-        public static async Task Import(string ProjectName)
+        public static void Import(string FilePath)
         {
-            string project_dir = Path.Combine(
+            string ExportPath = Path.Combine(
                 Core.RootDir,
                 Core.CodeDir,
-                ProjectName
+                Path.GetFileNameWithoutExtension(FilePath)
             );
+            ZipFile.ExtractToDirectory(FilePath, ExportPath);
         }
-        public static async Task Export(string ProjectName)
+        public static void Export(string ProjectName)
         {
             string project_dir = Path.Combine(
                 Core.RootDir,

@@ -201,10 +201,10 @@ namespace KodeRunner
                         ShowHelp();
                         break;
                     case "import":
-                        await Implementations.Import(parts[1]);
+                        Implementations.Import(parts[1]);
                         break;
                     case "export":
-                        await Implementations.Export(parts[1]);
+                        Implementations.Export(parts[1]);
                         break;
                     default:
                         Console.WriteLine("Unknown command. Type 'help' for available commands.");
