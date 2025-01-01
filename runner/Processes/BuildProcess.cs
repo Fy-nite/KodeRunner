@@ -40,7 +40,8 @@ namespace KodeRunner
             {
                 StartInfo = new ProcessStartInfo
                 {
-                    FileName = "/bin/bash", // Use "cmd.exe" for Windows
+                    // handle if running on windows or linux using the system lib
+                    FileName = OperatingSystem.IsWindows() ? "Powershell.exe" : "/bin/bash",
                     UseShellExecute = false,
                     RedirectStandardInput = true,
                     RedirectStandardOutput = true,

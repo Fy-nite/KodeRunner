@@ -1,3 +1,17 @@
 [2025-01-01 08:22:48] [Info] Starting KodeRunner...
 [2025-01-01 08:22:48] [Info] KodeRunner v3.0.0.0 started
 [2025-01-01 08:22:48] [Info] WebSocket server started at ws://localhost:5000/
+[2025-01-01 09:14:27] [Info] Starting KodeRunner...
+[2025-01-01 09:14:27] [Info] KodeRunner v3.0.0.0 started
+[2025-01-01 09:14:27] [Info] WebSocket server started at ws://localhost:5000/
+[2025-01-01 09:15:48] [Info] Starting KodeRunner...
+[2025-01-01 09:15:49] [Info] KodeRunner v3.0.0.0 started
+[2025-01-01 09:15:49] [Info] WebSocket server started at ws://localhost:5000/
+[2025-01-01 14:44:17] [Info] Starting KodeRunner...
+[2025-01-01 14:44:17] [Info] KodeRunner v3.0.0.0 started
+[2025-01-01 14:44:17] [Info] WebSocket server started at ws://localhost:5000/
+[2025-01-01 14:44:19] [Info] New terminput connection: 8dd2a1692c1dfa0-407a0b4b
+[2025-01-01 14:44:19] [Info] New pms connection: 8dd2a1692c75432-9adb07d1
+[2025-01-01 14:44:19] [Info] New code connection: 8dd2a1692ded65f-404bed01
+[2025-01-01 14:44:19] [Info] New stop connection: 8dd2a1692dfb29e-9916094b
+[2025-01-01 14:44:47] [Error] Terminal input error: The remote party closed the WebSocket connection without completing the close handshake.

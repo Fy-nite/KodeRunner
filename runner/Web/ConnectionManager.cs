@@ -4,6 +4,9 @@ using System.Net.WebSockets;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using System.IO;
+using System.Net;
+using System.Linq;
 
 namespace KodeRunner
 {
@@ -89,6 +92,7 @@ namespace KodeRunner
         {
             return $"{DateTime.UtcNow.Ticks:x8}-{Guid.NewGuid().ToString("N").Substring(0, 8)}";
         }
+               
 
         public async Task SendToConnection(string id, string message)
         {

@@ -10,6 +10,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using KodeRunner;
 using KodeRunner.Config;
+
 using Newtonsoft.Json;
 
 namespace KodeRunner
@@ -94,6 +95,7 @@ namespace KodeRunner
             while (true)
             {
                 var context = await server.GetContextAsync();
+                Console.WriteLine($"Received request for {context.Request.Url}");
                 if (context.Request.IsWebSocketRequest)
                 {
                     var path = context.Request.Url.AbsolutePath;
@@ -167,7 +169,77 @@ namespace KodeRunner
                             break;
                     }
                 }
+                else
+                {
+                    Console.WriteLine("Handling HTTP request...");
+                    HandleHttpRequest(context);
+                }
             }
+        }
+         static async Task HandleHttpRequest(HttpListenerContext context)
+        {
+            Logger.Log("Handling HTTP request...");
+            try
+            {
+                string localPath = context.Request.Url?.LocalPath ?? "/";
+                if (localPath == "/")
+                {
+                    localPath = "/index.html";
+                }
+
+                string filePath = Path.Combine(Core.RootDir, "wwwroot", localPath.TrimStart('/'));
+                if (File.Exists(filePath))
+                {
+                    byte[] fileBytes = await File.ReadAllBytesAsync(filePath);
+                    context.Response.ContentType = GetContentType(filePath);
+                    context.Response.ContentLength64 = fileBytes.Length;
+                    await context.Response.OutputStream.WriteAsync(
+                        fileBytes.AsMemory(),
+                        CancellationToken.None
+                    );
+                }
+                else
+                {
+                    context.Response.StatusCode = (int)HttpStatusCode.NotFound;
+                    byte[] errorBytes = Encoding.UTF8.GetBytes("404 - File Not Found");
+                    await context.Response.OutputStream.WriteAsync(
+                        errorBytes.AsMemory(),
+                        CancellationToken.None
+                    );
+                }
+            }
+            catch (HttpListenerException)
+            {
+                // Client disconnected, ignore the error
+                Logger.Log("Client disconnected.");
+            }
+
+            finally
+            {
+                try
+                {
+                    context.Response.Close();
+                }
+                catch
+                {
+                    // Ignore any errors during response close
+                }
+            }
+        }
+
+        static string GetContentType(string filePath)
+        {
+            string extension = Path.GetExtension(filePath).ToLowerInvariant();
+            return extension switch
+            {
+                ".html" => "text/html",
+                ".css" => "text/css",
+                ".js" => "application/javascript",
+                ".png" => "image/png",
+                ".jpg" => "image/jpeg",
+                ".gif" => "image/gif",
+                _ => "application/octet-stream",
+            };
         }
 
         static async Task ProcessConsoleCommands()
