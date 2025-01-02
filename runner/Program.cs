@@ -8,7 +8,7 @@ using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
-using KodeRunner;
+using KodeRunner.Terminal;
 using KodeRunner.Config;
 using Newtonsoft.Json;
 
@@ -90,7 +90,7 @@ namespace KodeRunner
             buildProcess.SetupCodeDir();
 
             // Start the console command processor
-            _ = Task.Run(Terminal.init);
+            _ = Task.Run(Terminal.Terminal.init);
 
             while (true)
             {

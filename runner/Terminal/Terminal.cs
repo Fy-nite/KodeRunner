@@ -1,4 +1,4 @@
-namespace KodeRunner
+namespace KodeRunner.Terminal
 {
     class Terminal
     {
@@ -7,21 +7,16 @@ namespace KodeRunner
             var w = Console.WindowWidth;
             var h = Console.WindowHeight;
             Console.Clear();
-            CreateBox(w, h);
+            //Window commands = new Window(-1, -1, w/2+1, h+2);
+            Window topright = new Window(w/2+1, -1, w/2+1, h/2+1);
+            Window bottomright = new Window(w/2+1, h/2-1, w/2+1, h/2+3);
+            //new Window(10, 5, 10, 10);
+
+            Console.Write("\x1b[1;1H");
             _ = Task.Run(handleCommands); // Process commands without stoping entire console interface
             
         }
-        public static void CreateBox(int w, int h)
-        {
-            for (int y=0; y<h; y++)
-            {
-                for (int x=0; x<w; x++)
-                {
-                    if (y==0 || y==h-1) {Console.Write('-');}
-                }
-                if (y!=h-1) {Console.Write('\n');}
-            }
-        }
+        
         public static async Task handleCommands()
         {
             while (true)
