@@ -10,7 +10,6 @@ using System.Threading;
 using System.Threading.Tasks;
 using KodeRunner;
 using KodeRunner.Config;
-
 using Newtonsoft.Json;
 
 namespace KodeRunner
@@ -46,7 +45,7 @@ namespace KodeRunner
         /// Main entry point for the application.
         /// </summary>
         /// <param name="args">Command-line arguments.</param>
-        static async Task Main(string[] args)
+        public static async Task Main(string[] args)
         {
             var config = Configuration.Load();
             Logger.Log("Starting KodeRunner...");
@@ -69,6 +68,8 @@ namespace KodeRunner
             Provider.SettingsProvider settings = new Provider.SettingsProvider();
             runnableManager.LoadRunnables();
 
+    
+
             // check the runnables dir for any dlls
             if (Directory.Exists(Core.RunnableDir))
             {
@@ -79,7 +80,7 @@ namespace KodeRunner
                 }
             }
 
-            runnableManager.print();
+            // runnableManager.print();
             server.Start();
 
             Logger.Log($"KodeRunner v{Core.GetVersion()} started");
@@ -177,7 +178,8 @@ namespace KodeRunner
                 }
             }
         }
-         static async Task HandleHttpRequest(HttpListenerContext context)
+
+        static async Task HandleHttpRequest(HttpListenerContext context)
         {
             Logger.Log("Handling HTTP request...");
             try
@@ -214,7 +216,6 @@ namespace KodeRunner
                 // Client disconnected, ignore the error
                 Logger.Log("Client disconnected.");
             }
-
             finally
             {
                 try
@@ -247,47 +248,51 @@ namespace KodeRunner
         {
             while (true)
             {
+                Console.WriteLine(":> ");
                 var command = await Console.In.ReadLineAsync();
                 if (string.IsNullOrEmpty(command))
                     continue;
 
                 var parts = command.Split(' ');
-            try {
-                switch (parts[0].ToLower())
+                try
                 {
-                    case "list":
-                        ListConnections();
-                        break;
-                    case "disconnect":
-                        if (parts.Length > 1)
-                        {
-                            await connectionManager.DisconnectById(parts[1]);
-                        }
-                        break;
-                    case "disconnecttype":
-                        if (parts.Length > 1)
-                        {
-                            await connectionManager.DisconnectByType(parts[1]);
-                        }
-                        break;
-                    case "help":
-                        ShowHelp();
-                        break;
-                    case "import":
-                        Implementations.Import(parts[1]);
-                        break;
-                    case "export":
-                        Implementations.Export(parts[1]);
-                        break;
-                    default:
-                        Console.WriteLine("Unknown command. Type 'help' for available commands.");
-                        break;
+                    switch (parts[0].ToLower())
+                    {
+                        case "list":
+                            ListConnections();
+                            break;
+                        case "disconnect":
+                            if (parts.Length > 1)
+                            {
+                                await connectionManager.DisconnectById(parts[1]);
+                            }
+                            break;
+                        case "disconnecttype":
+                            if (parts.Length > 1)
+                            {
+                                await connectionManager.DisconnectByType(parts[1]);
+                            }
+                            break;
+                        case "help":
+                            ShowHelp();
+                            break;
+                        case "import":
+                            Implementations.Import(parts[1]);
+                            break;
+                        case "export":
+                            Implementations.Export(parts[1]);
+                            break;
+                        default:
+                            Console.WriteLine(
+                                "Unknown command. Type 'help' for available commands."
+                            );
+                            break;
+                    }
                 }
-            } 
-            catch (Exception ex)
-            {
-                Logger.Log($"Error while processing command {parts[0]}: {ex.Message}", "error");
-            }
+                catch (Exception ex)
+                {
+                    Logger.Log($"Error while processing command {parts[0]}: {ex.Message}", "error");
+                }
             }
         }
 

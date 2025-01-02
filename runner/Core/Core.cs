@@ -42,5 +42,15 @@ namespace KodeRunner
         public static string ConfigPath = Path.Combine(RootDir, ConfigDir, ConfigFile);
         public static string RunnableDir = Path.Combine(RootDir, "Runnables");
         public static string IncludesDir = Path.Combine(RootDir, "Includes");
+        public static HashSet<string> dirs = new HashSet<string>
+        {
+            CodeDir,
+            BuildDir,
+            TempDir,
+            OutputDir,
+            LogDir,
+            ConfigDir,
+            ExportDir,
+        };
     }
 }
