@@ -807,31 +807,7 @@ namespace KodeRunner
                 runnableManager.LoadRunnables();
             }
         }
-        public static async Task<string> ReadFromMemoryStream(MemoryStream memoryStream)
-        {
-            _ = memoryStream.Seek(0, SeekOrigin.Begin);
-            using (var reader = new StreamReader(memoryStream, Encoding.UTF8))
-            {
-                return await reader.ReadToEndAsync();
-            }
-        }
 
-        public static async Task SendToWebSocket(string endpoint, string message)
-        {
-            if (
-                activeConnections.TryGetValue(endpoint, out WebSocket socket)
-                && socket.State == WebSocketState.Open
-            )
-            {
-                var bytes = Encoding.UTF8.GetBytes(message);
-                await socket.SendAsync(
-                    new ArraySegment<byte>(bytes),
-                    WebSocketMessageType.Text,
-                    true,
-                    CancellationToken.None
-                );
-            }
-        }
         public void EnsureFolders()
         {
             Directory.CreateDirectory(Path.Combine(Core.RootDir, Core.CodeDir));
