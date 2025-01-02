@@ -16,7 +16,7 @@ namespace KodeRunner
 {
     class Program
     {
-        static ConnectionManager connectionManager = new ConnectionManager();
+        public static ConnectionManager connectionManager = new ConnectionManager();
         static Dictionary<string, WebSocket> activeConnections =
             new Dictionary<string, WebSocket>();
         static TerminalProcess terminalProcess = new TerminalProcess();
@@ -90,7 +90,7 @@ namespace KodeRunner
             buildProcess.SetupCodeDir();
 
             // Start the console command processor
-            _ = Task.Run(ProcessConsoleCommands);
+            _ = Task.Run(Terminal.init);
 
             while (true)
             {
@@ -171,79 +171,7 @@ namespace KodeRunner
             }
         }
 
-        static async Task ProcessConsoleCommands()
-        {
-            while (true)
-            {
-                var command = await Console.In.ReadLineAsync();
-                if (string.IsNullOrEmpty(command))
-                    continue;
-
-                var parts = command.Split(' ');
-            try {
-                switch (parts[0].ToLower())
-                {
-                    case "list":
-                        ListConnections();
-                        break;
-                    case "disconnect":
-                        if (parts.Length > 1)
-                        {
-                            await connectionManager.DisconnectById(parts[1]);
-                        }
-                        break;
-                    case "disconnecttype":
-                        if (parts.Length > 1)
-                        {
-                            await connectionManager.DisconnectByType(parts[1]);
-                        }
-                        break;
-                    case "help":
-                        ShowHelp();
-                        break;
-                    case "import":
-                        Implementations.Import(parts[1]);
-                        break;
-                    case "export":
-                        Implementations.Export(parts[1]);
-                        break;
-                    default:
-                        Console.WriteLine("Unknown command. Type 'help' for available commands.");
-                        break;
-                }
-            } 
-            catch (Exception ex)
-            {
-                Logger.Log($"Error while processing command {parts[0]}: {ex.Message}", "error");
-            }
-            }
-        }
-
-        static void ShowHelp()
-        {
-            Console.WriteLine("Available commands:");
-            Console.WriteLine("  list                  - List all active connections");
-            Console.WriteLine("  disconnect <id>       - Disconnect a specific connection");
-            Console.WriteLine("  disconnecttype <type> - Disconnect all connections of a type");
-            Console.WriteLine("  import <project file> - Import a .KRproject file");
-            Console.WriteLine("  export <project name> - Export a project into a .KRproject file");
-            Console.WriteLine("  help                  - Show this help message");
-        }
-
-        static void ListConnections()
-        {
-            var connections = connectionManager.ListConnections();
-            Console.WriteLine("\nActive connections:");
-            Console.WriteLine("ID                     Type     Connected At          Client Info");
-            Console.WriteLine("---------------------- -------- -------------------- ------------");
-            foreach (var conn in connections)
-            {
-                Console.WriteLine(
-                    $"{conn.Id, -22} {conn.Type, -8} {conn.ConnectedAt:yyyy-MM-dd HH:mm:ss} {conn.ClientInfo}"
-                );
-            }
-            Console.WriteLine();
-        }
+        
 
         static async Task HandleTerminalInput(
             WebSocket webSocket,
