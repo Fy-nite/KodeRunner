@@ -47,6 +47,9 @@ namespace KodeRunner
         /// <param name="args">Command-line arguments.</param>
         static async Task Main(string[] args)
         {
+            Console.CancelKeyPress += delegate {
+                Console.Write("\x1b[?1049h");
+            };
             var config = Configuration.Load();
             Logger.Log("Starting KodeRunner...");
             EnsureFolders();

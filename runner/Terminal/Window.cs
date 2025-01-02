@@ -26,8 +26,8 @@ namespace KodeRunner.Terminal
                 Goto(xpos, y+ypos);
                 for (int x=0; x<width; x++)
                 {
-                    if (y < 0 || x < 0 || y+ypos > Console.WindowHeight || x+xpos > Console.WindowWidth) {continue;}
-                    
+                    if (y < -ypos || x < -xpos || y+ypos > Console.WindowHeight || x+xpos > Console.WindowWidth) {continue;}
+
                     if (x==width-1) {Console.Write('│');} else
                     if (x==0) {Console.Write('│');} else
                     if (y==height-1) {Console.Write('─');} else

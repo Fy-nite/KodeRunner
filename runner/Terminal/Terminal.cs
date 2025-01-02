@@ -7,9 +7,9 @@ namespace KodeRunner.Terminal
             var w = Console.WindowWidth;
             var h = Console.WindowHeight;
             Console.Clear();
-            //Window commands = new Window(-1, -1, w/2+1, h+2);
-            Window topright = new Window(w/2+1, -1, w/2+1, h/2+1);
-            Window bottomright = new Window(w/2+1, h/2-1, w/2+1, h/2+3);
+            Window commands = new Window(-1, -1, w/2+2, h+3);
+            Window topright = new Window(w/2+1, -1, w/2+2, h/2+1);
+            Window bottomright = new Window(w/2+1, h/2-1, w/2+2, h/2+3);
             //new Window(10, 5, 10, 10);
 
             Console.Write("\x1b[1;1H");
