@@ -728,7 +728,7 @@ namespace KodeRunner
                 );
             }
         }
-        public void EnsureFolders()
+        public static void EnsureFolders()
         {
             Directory.CreateDirectory(Path.Combine(Core.RootDir, Core.CodeDir));
             Directory.CreateDirectory(Path.Combine(Core.RootDir, Core.BuildDir));
