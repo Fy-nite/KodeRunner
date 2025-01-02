@@ -50,6 +50,7 @@ namespace KodeRunner
         {
             var config = Configuration.Load();
             Logger.Log("Starting KodeRunner...");
+            EnsureFolders();
             // setup args for cmd creating dirs
             if (args.Length > 0)
             {
@@ -825,6 +826,15 @@ namespace KodeRunner
                     CancellationToken.None
                 );
             }
+        }
+        public void EnsureFolders()
+        {
+            Directory.CreateDirectory(Path.Combine(Core.RootDir, Core.CodeDir));
+            Directory.CreateDirectory(Path.Combine(Core.RootDir, Core.BuildDir));
+            Directory.CreateDirectory(Path.Combine(Core.RootDir, Core.TempDir));
+            Directory.CreateDirectory(Path.Combine(Core.RootDir, Core.OutputDir));
+            Directory.CreateDirectory(Path.Combine(Core.RootDir, Core.LogDir));
+            Directory.CreateDirectory(Path.Combine(Core.RootDir, Core.ExportDir));
         }
     }
 }
