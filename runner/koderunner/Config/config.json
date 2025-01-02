@@ -10,7 +10,7 @@
   },
   "Logging": {
     "EnableFileLogging": true,
-    "EnableConsoleLogging": true,
+    "EnableConsoleLogging": false,
     "LogDirectory": "Logs",
     "MaxLogFiles": 10,
     "MaxLogSize": 10485760
