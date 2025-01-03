@@ -1,0 +1,14 @@
+/home/charlie/KodeRunner/test/microasmtest/obj/Debug/net8.0/microasmtest.GeneratedMSBuildEditorConfig.editorconfig
+/home/charlie/KodeRunner/test/microasmtest/obj/Debug/net8.0/microasmtest.AssemblyInfoInputs.cache
+/home/charlie/KodeRunner/test/microasmtest/obj/Debug/net8.0/microasmtest.AssemblyInfo.cs
+/home/charlie/KodeRunner/test/microasmtest/obj/Debug/net8.0/microasmtest.csproj.CoreCompileInputs.cache
+/home/charlie/KodeRunner/test/microasmtest/bin/Debug/net8.0/microasmtest
+/home/charlie/KodeRunner/test/microasmtest/bin/Debug/net8.0/microasmtest.deps.json
+/home/charlie/KodeRunner/test/microasmtest/bin/Debug/net8.0/microasmtest.runtimeconfig.json
+/home/charlie/KodeRunner/test/microasmtest/bin/Debug/net8.0/microasmtest.dll
+/home/charlie/KodeRunner/test/microasmtest/bin/Debug/net8.0/microasmtest.pdb
+/home/charlie/KodeRunner/test/microasmtest/obj/Debug/net8.0/microasmtest.dll
+/home/charlie/KodeRunner/test/microasmtest/obj/Debug/net8.0/refint/microasmtest.dll
+/home/charlie/KodeRunner/test/microasmtest/obj/Debug/net8.0/microasmtest.pdb
+/home/charlie/KodeRunner/test/microasmtest/obj/Debug/net8.0/microasmtest.genruntimeconfig.cache
+/home/charlie/KodeRunner/test/microasmtest/obj/Debug/net8.0/ref/microasmtest.dll

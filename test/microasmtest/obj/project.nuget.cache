@@ -1,0 +1,10 @@
+{
+  "version": 2,
+  "dgSpecHash": "NFABnxh0D8icJrzPAA8ZCJ7mgGorwqKTw0wtWMorp4HxoJq9RYa0HgjnP5oGZoFthZpnVreQyecnhFkjhjnQ3Q==",
+  "success": true,
+  "projectFilePath": "/home/charlie/KodeRunner/test/microasmtest/microasmtest.csproj",
+  "expectedPackageFiles": [
+    "/home/charlie/.nuget/packages/microsoft.aspnetcore.app.ref/8.0.10/microsoft.aspnetcore.app.ref.8.0.10.nupkg.sha512"
+  ],
+  "logs": []
+}

@@ -6,8 +6,7 @@
 
 int main() {
     int running = 1;
-    printf("Welcome to the infomation center!\n");
-    printf("Type 'hello' to see a greeting\n");
+    printf("Welcome to the KodeRunner installer!\n");
     printf("Type 'help' for more commands\n");
     while (running)
     {

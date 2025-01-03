@@ -45,7 +45,7 @@ namespace KodeRunner
         /// Main entry point for the application.
         /// </summary>
         /// <param name="args">Command-line arguments.</param>
-        static async Task Main(string[] args)
+        public static async Task Main(string[] args)
         {
             var config = Configuration.Load();
             Logger.Log("Starting KodeRunner...");
@@ -68,6 +68,8 @@ namespace KodeRunner
             Provider.SettingsProvider settings = new Provider.SettingsProvider();
             runnableManager.LoadRunnables();
 
+    
+
             // check the runnables dir for any dlls
             if (Directory.Exists(Core.RunnableDir))
             {
@@ -78,7 +80,7 @@ namespace KodeRunner
                 }
             }
 
-            runnableManager.print();
+            // runnableManager.print();
             server.Start();
 
             Logger.Log($"KodeRunner v{Core.GetVersion()} started");
@@ -95,6 +97,7 @@ namespace KodeRunner
             while (true)
             {
                 var context = await server.GetContextAsync();
+                Console.WriteLine($"Received request for {context.Request.Url}");
                 if (context.Request.IsWebSocketRequest)
                 {
                     var path = context.Request.Url.AbsolutePath;
@@ -168,54 +171,128 @@ namespace KodeRunner
                             break;
                     }
                 }
+                else
+                {
+                    Console.WriteLine("Handling HTTP request...");
+                    HandleHttpRequest(context);
+                }
             }
+        }
+
+        static async Task HandleHttpRequest(HttpListenerContext context)
+        {
+            Logger.Log("Handling HTTP request...");
+            try
+            {
+                string localPath = context.Request.Url?.LocalPath ?? "/";
+                if (localPath == "/")
+                {
+                    localPath = "/index.html";
+                }
+
+                string filePath = Path.Combine(Core.RootDir, "wwwroot", localPath.TrimStart('/'));
+                if (File.Exists(filePath))
+                {
+                    byte[] fileBytes = await File.ReadAllBytesAsync(filePath);
+                    context.Response.ContentType = GetContentType(filePath);
+                    context.Response.ContentLength64 = fileBytes.Length;
+                    await context.Response.OutputStream.WriteAsync(
+                        fileBytes.AsMemory(),
+                        CancellationToken.None
+                    );
+                }
+                else
+                {
+                    context.Response.StatusCode = (int)HttpStatusCode.NotFound;
+                    byte[] errorBytes = Encoding.UTF8.GetBytes("404 - File Not Found");
+                    await context.Response.OutputStream.WriteAsync(
+                        errorBytes.AsMemory(),
+                        CancellationToken.None
+                    );
+                }
+            }
+            catch (HttpListenerException)
+            {
+                // Client disconnected, ignore the error
+                Logger.Log("Client disconnected.");
+            }
+            finally
+            {
+                try
+                {
+                    context.Response.Close();
+                }
+                catch
+                {
+                    // Ignore any errors during response close
+                }
+            }
+        }
+
+        static string GetContentType(string filePath)
+        {
+            string extension = Path.GetExtension(filePath).ToLowerInvariant();
+            return extension switch
+            {
+                ".html" => "text/html",
+                ".css" => "text/css",
+                ".js" => "application/javascript",
+                ".png" => "image/png",
+                ".jpg" => "image/jpeg",
+                ".gif" => "image/gif",
+                _ => "application/octet-stream",
+            };
         }
 
         static async Task ProcessConsoleCommands()
         {
             while (true)
             {
+                Console.WriteLine(":> ");
                 var command = await Console.In.ReadLineAsync();
                 if (string.IsNullOrEmpty(command))
                     continue;
 
                 var parts = command.Split(' ');
-            try {
-                switch (parts[0].ToLower())
+                try
                 {
-                    case "list":
-                        ListConnections();
-                        break;
-                    case "disconnect":
-                        if (parts.Length > 1)
-                        {
-                            await connectionManager.DisconnectById(parts[1]);
-                        }
-                        break;
-                    case "disconnecttype":
-                        if (parts.Length > 1)
-                        {
-                            await connectionManager.DisconnectByType(parts[1]);
-                        }
-                        break;
-                    case "help":
-                        ShowHelp();
-                        break;
-                    case "import":
-                        Implementations.Import(parts[1]);
-                        break;
-                    case "export":
-                        Implementations.Export(parts[1]);
-                        break;
-                    default:
-                        Console.WriteLine("Unknown command. Type 'help' for available commands.");
-                        break;
+                    switch (parts[0].ToLower())
+                    {
+                        case "list":
+                            ListConnections();
+                            break;
+                        case "disconnect":
+                            if (parts.Length > 1)
+                            {
+                                await connectionManager.DisconnectById(parts[1]);
+                            }
+                            break;
+                        case "disconnecttype":
+                            if (parts.Length > 1)
+                            {
+                                await connectionManager.DisconnectByType(parts[1]);
+                            }
+                            break;
+                        case "help":
+                            ShowHelp();
+                            break;
+                        case "import":
+                            Implementations.Import(parts[1]);
+                            break;
+                        case "export":
+                            Implementations.Export(parts[1]);
+                            break;
+                        default:
+                            Console.WriteLine(
+                                "Unknown command. Type 'help' for available commands."
+                            );
+                            break;
+                    }
                 }
-            } 
-            catch (Exception ex)
-            {
-                Logger.Log($"Error while processing command {parts[0]}: {ex.Message}", "error");
-            }
+                catch (Exception ex)
+                {
+                    Logger.Log($"Error while processing command {parts[0]}: {ex.Message}", "error");
+                }
             }
         }
 
@@ -629,6 +706,33 @@ namespace KodeRunner
             }
         }
 
+        static async Task<string> ReadFromMemoryStream(MemoryStream memoryStream)
+        {
+            memoryStream.Seek(0, SeekOrigin.Begin);
+            using (var reader = new StreamReader(memoryStream, Encoding.UTF8))
+            {
+                return await reader.ReadToEndAsync();
+            }
+        }
+
+        static async Task SendToWebSocket(string type, string message)
+        {
+            var response = JsonConvert.SerializeObject(new { type, message });
+            var responseBytes = Encoding.UTF8.GetBytes(response);
+            foreach (var connection in connectionManager.ListConnections())
+            {
+                if (connection.Type == type)
+                {
+                    await connection.Socket.SendAsync(
+                        new ArraySegment<byte>(responseBytes),
+                        WebSocketMessageType.Text,
+                        true,
+                        CancellationToken.None
+                    );
+                }
+            }
+        }
+
         static async Task HandleStopWebSocket(
             WebSocket webSocket,
             string connectionId,
@@ -703,31 +807,7 @@ namespace KodeRunner
                 runnableManager.LoadRunnables();
             }
         }
-        public static async Task<string> ReadFromMemoryStream(MemoryStream memoryStream)
-        {
-            _ = memoryStream.Seek(0, SeekOrigin.Begin);
-            using (var reader = new StreamReader(memoryStream, Encoding.UTF8))
-            {
-                return await reader.ReadToEndAsync();
-            }
-        }
 
-        public static async Task SendToWebSocket(string endpoint, string message)
-        {
-            if (
-                activeConnections.TryGetValue(endpoint, out WebSocket socket)
-                && socket.State == WebSocketState.Open
-            )
-            {
-                var bytes = Encoding.UTF8.GetBytes(message);
-                await socket.SendAsync(
-                    new ArraySegment<byte>(bytes),
-                    WebSocketMessageType.Text,
-                    true,
-                    CancellationToken.None
-                );
-            }
-        }
         public static void EnsureFolders()
         {
             Directory.CreateDirectory(Path.Combine(Core.RootDir, Core.CodeDir));
