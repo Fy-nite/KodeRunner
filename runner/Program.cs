@@ -1,13 +1,8 @@
-﻿using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Net;
+﻿using System.Net;
 using System.Net.WebSockets;
-using System.Reflection.Metadata;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
-using System.Threading.Tasks;
 using KodeRunner.Terminal;
 using KodeRunner.Config;
 using Newtonsoft.Json;
@@ -48,7 +43,7 @@ namespace KodeRunner
         static async Task Main(string[] args)
         {
             Console.CancelKeyPress += delegate {
-                Console.Write("\x1b[?1049h");
+                Console.Write("\x1b[?1049h\x1b[?25h");
             };
             var config = Configuration.Load();
             Logger.Log("Starting KodeRunner...");
@@ -93,7 +88,9 @@ namespace KodeRunner
             buildProcess.SetupCodeDir();
 
             // Start the console command processor
-            _ = Task.Run(Terminal.Terminal.init);
+            Terminal.Terminal.init();
+            Thread thread1 = new Thread(Terminal.Terminal.UpdateLoop);
+            thread1.Start();
 
             while (true)
             {

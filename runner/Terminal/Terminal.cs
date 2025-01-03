@@ -2,17 +2,19 @@ namespace KodeRunner.Terminal
 {
     class Terminal
     {
-        public static async Task init()
+        static Window commands;
+        static Window connections;
+        static Window runnables;
+        public static void init()
         {
             var w = Console.WindowWidth;
             var h = Console.WindowHeight;
             Console.Clear();
-            Window commands = new Window(-1, -1, w/2+2, h+3);
-            Window topright = new Window(w/2+1, -1, w/2+2, h/2+1);
-            Window bottomright = new Window(w/2+1, h/2-1, w/2+2, h/2+3);
-            //new Window(10, 5, 10, 10);
+            commands = new Window(0, 0, (w+1)/2+1, h+2, "Console");
+            connections = new Window((w+1)/2, 0, (w+1)/2+1, (h+1)/2+1, "Connections");
+            runnables = new Window((w+1)/2, (h+1)/2, (w+1)/2+1, (h+1)/2+2, "Runnables");
 
-            Console.Write("\x1b[1;1H");
+            Console.Write("\x1b[1;1H\x1b[?25l");
             _ = Task.Run(handleCommands); // Process commands without stoping entire console interface
             
         }
@@ -63,7 +65,8 @@ namespace KodeRunner.Terminal
                     Logger.Log($"Error while processing command {parts[0]}: {ex.Message}", "error");
                 }
             }
-        }static void ShowHelp()
+        }
+        static void ShowHelp()
         {
             Console.WriteLine("Available commands:");
             Console.WriteLine("  list                  - List all active connections");
@@ -87,6 +90,20 @@ namespace KodeRunner.Terminal
                 );
             }
             Console.WriteLine();
+        }
+        public static void Update()
+        {
+            commands.Update();
+            connections.Update();
+            runnables.Update();
+        }
+        public static void UpdateLoop()
+        {
+            while (true)
+            {
+                Update();
+                commands.Write($"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa a");
+            }
         }
     }
 }
