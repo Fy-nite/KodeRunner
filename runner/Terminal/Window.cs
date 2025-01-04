@@ -7,6 +7,9 @@ namespace KodeRunner.Terminal
         readonly int w;
         readonly int h;
         
+        readonly int bw;
+        readonly int bh;
+        
         int text_x = 0;
         int text_y = 0;
 
@@ -14,15 +17,26 @@ namespace KodeRunner.Terminal
 
         char[] buffer;
 
-        public Window(int x, int y, int w, int h, string title)
+        bool curser;
+
+        public Window(float x, float y, float w, float h, string title, bool show_curser=false)
+            : this((int)Math.Round(x), (int)Math.Round(y), (int)Math.Round(w), (int)Math.Round(h), title, show_curser)
+        {
+        }
+        public Window(int x, int y, int w, int h, string title, bool show_curser=false)
         {
             this.x = x+1;
             this.y = y+3;
             this.w = w-2;
             this.h = h-4;
+            this.bw = Math.Clamp(this.w+x, 1, Console.WindowWidth)-x;
+            this.bh = Math.Clamp(this.h+y, 1, Console.WindowHeight)-y;
+            
             this.title = title.PadLeft((w + title.Length)/2).PadRight(w);
-            this.buffer = Enumerable.Repeat(' ', this.w * this.h).ToArray();
+            this.buffer = Enumerable.Repeat(' ', this.bw * this.bh).ToArray();
+            this.curser = show_curser;
             Box();
+            Update();
         }
         public static void Goto(int x, int y)
         {
@@ -48,28 +62,31 @@ namespace KodeRunner.Terminal
                 }
             }
         }
-        public void WriteChar(char i)
+        public void WriteChar(char i, bool update = true)
         {
             if (i != '\n') {
-                buffer[text_y * w + text_x] = i;
+                buffer[text_y * bw + text_x] = i;
             }
             text_x++;
-            if (text_x == w || i == '\n')// || text_x+x > Console.WindowWidth)
+            if (text_x == bw || i == '\n')// || text_x+x > Console.WindowWidth)
             {
                 text_x = 0;
                 text_y++;
-                if (text_y == h)// || text_y+y > Console.WindowHeight)
+                if (text_y == bh)// || text_y+y > Console.WindowHeight)
                 {
                     scroll();
                 }
             }
+            if (update)
+                Update();
         }
         public void Write(string str)
         {
             for (int i=0; i<str.Length; i++)
             {
-                WriteChar(str[i]);
+                WriteChar(str[i], false);
             }
+            Update();
         }
         public void WriteLine(string str)
         {
@@ -81,9 +98,9 @@ namespace KodeRunner.Terminal
         }
         void scroll()
         {
-            for (int hy=0;hy<h-1;hy++) {
-                for (int hx=0;hx<w;hx++) {
-                    buffer[(hy * w) + hx] = buffer[((hy+1) * w) + hx];
+            for (int hy=0;hy<bh-1;hy++) {
+                for (int hx=0;hx<bw;hx++) {
+                    buffer[(hy * bw) + hx] = buffer[((hy+1) * bw) + hx];
                 }
             }
             clear_line(h-1);
@@ -91,23 +108,33 @@ namespace KodeRunner.Terminal
         }
         void clear_line(int line)
         {
-            for (int i=0; i<w; i++)
+            for (int i=0; i<bw; i++)
             {
-                buffer[line * w + i] = ' ';
+                buffer[line * bw + i] = ' ';
             }
         }
 
         public void Update()
         {
-            
-            Goto(x, y);
-            for (int hy=0;hy<h;hy++) {
+            for (int hy=0;hy<bh;hy++) {
                 Goto(x, y+hy);
-                for (int hx=0;hx<w;hx++) {
-                    //if (hy < -y+1 || hx < -x+1 || hy+y > Console.WindowHeight || hx+x > Console.WindowWidth) {continue;}
-                    Console.Write(buffer[hy * w + hx]);
+                for (int hx=0;hx<bw;hx++) {
+                    if (hy == text_y && hx == text_x && curser)
+                        Console.Write("█");
+                    else
+                        Console.Write(buffer[hy * bw + hx]);
                 }
             }
+        }
+        public void Backspace()
+        {
+            if (text_x-- < 0)
+            {
+                text_x = w-1;
+                text_y--;
+            }
+            buffer[text_y * w + text_x] = ' ';
+            Update();
         }
     }
 }

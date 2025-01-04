@@ -46,6 +46,9 @@ namespace KodeRunner
                 Console.Write("\x1b[?1049h\x1b[?25h");
             };
             var config = Configuration.Load();
+            // Start the console command processor
+            Terminal.Terminal.init();
+
             Logger.Log("Starting KodeRunner...");
             EnsureFolders();
             // setup args for cmd creating dirs
@@ -86,11 +89,6 @@ namespace KodeRunner
 
             BuildProcess buildProcess = new BuildProcess();
             buildProcess.SetupCodeDir();
-
-            // Start the console command processor
-            Terminal.Terminal.init();
-            Thread thread1 = new Thread(Terminal.Terminal.UpdateLoop);
-            thread1.Start();
 
             while (true)
             {

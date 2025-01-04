@@ -5,25 +5,47 @@ namespace KodeRunner.Terminal
         static Window commands;
         static Window connections;
         static Window runnables;
+        static Window log;
+        
         public static void init()
         {
             var w = Console.WindowWidth;
             var h = Console.WindowHeight;
             Console.Clear();
-            commands = new Window(0, 0, (w+1)/2+1, h+2, "Console");
-            connections = new Window((w+1)/2, 0, (w+1)/2+1, (h+1)/2+1, "Connections");
-            runnables = new Window((w+1)/2, (h+1)/2, (w+1)/2+1, (h+1)/2+2, "Runnables");
+            commands =    new Window(0     , 0       , w/2f+2 , h+2       , "Console", true);
+            connections = new Window(w/2f+1, 0       , w/2f+1 , h/4f+1.5f , "Connections");
+            runnables =   new Window(w/2f+1, h/4f    , w/2f+1 , h/4f      , "Runnables");
+            log =         new Window(w/2f+1, h/2f    , w/2f+1 , h/2f+2    , "Logs");
 
             Console.Write("\x1b[1;1H\x1b[?25l");
             _ = Task.Run(handleCommands); // Process commands without stoping entire console interface
             
+        }
+
+        public static void Write(string str, string window)
+        {
+            switch (window) {
+                case "Console":
+                    commands.Write(str);
+                    break;
+                case "Connections":
+                    connections.Write(str);
+                    break;
+                case "Runnables":
+                    runnables.Write(str);
+                    break;
+                case "Logs":
+                    log.Write(str);
+                    break;
+            }
         }
         
         public static async Task handleCommands()
         {
             while (true)
             {
-                var command = await Console.In.ReadLineAsync();
+                commands.Write("> ");
+                var command = await ReadString();
                 if (string.IsNullOrEmpty(command))
                     continue;
 
@@ -56,7 +78,7 @@ namespace KodeRunner.Terminal
                             Implementations.Export(parts[1]);
                             break;
                         default:
-                            Console.WriteLine("Unknown command. Type 'help' for available commands.");
+                            commands.WriteLine("Unknown command. Type 'help' for available commands.");
                             break;
                 }
                 } 
@@ -68,21 +90,21 @@ namespace KodeRunner.Terminal
         }
         static void ShowHelp()
         {
-            Console.WriteLine("Available commands:");
-            Console.WriteLine("  list                  - List all active connections");
-            Console.WriteLine("  disconnect <id>       - Disconnect a specific connection");
-            Console.WriteLine("  disconnecttype <type> - Disconnect all connections of a type");
-            Console.WriteLine("  import <project file> - Import a .KRproject file");
-            Console.WriteLine("  export <project name> - Export a project into a .KRproject file");
-            Console.WriteLine("  help                  - Show this help message");
+            commands.WriteLine("Available commands:");
+            commands.WriteLine("  list                  - List all active connections");
+            commands.WriteLine("  disconnect <id>       - Disconnect a specific connection");
+            commands.WriteLine("  disconnecttype <type> - Disconnect all connections of a type");
+            commands.WriteLine("  import <project file> - Import a .KRproject file");
+            commands.WriteLine("  export <project name> - Export a project into a .KRproject file");
+            commands.WriteLine("  help                  - Show this help message");
         }
 
         static void ListConnections()
         {
             var connections = Program.connectionManager.ListConnections();
-            Console.WriteLine("\nActive connections:");
-            Console.WriteLine("ID                     Type     Connected At          Client Info");
-            Console.WriteLine("---------------------- -------- -------------------- ------------");
+            commands.WriteLine("\nActive connections:");
+            commands.WriteLine("ID                     Type     Connected At          Client Info");
+            commands.WriteLine("---------------------- -------- -------------------- ------------");
             foreach (var conn in connections)
             {
                 Console.WriteLine(
@@ -91,19 +113,42 @@ namespace KodeRunner.Terminal
             }
             Console.WriteLine();
         }
-        public static void Update()
+        static async Task<string> ReadString()
         {
-            commands.Update();
-            connections.Update();
-            runnables.Update();
-        }
-        public static void UpdateLoop()
-        {
-            while (true)
+            return await Task.Run(() =>
             {
-                Update();
-                commands.Write($"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa a");
-            }
+                string input = "";
+                while (true)
+                {
+                    ConsoleKeyInfo key = Console.ReadKey(true);  // Suppress the key from appearing on screen
+
+                    if (key.Key == ConsoleKey.Enter)
+                    {
+                        commands.WriteChar('\n');
+                        break;
+                    }
+                    else if (key.Key == ConsoleKey.Backspace)
+                    {
+                        if (input.Length > 0)
+                        {
+                            input = input.Substring(0, input.Length - 1);
+                            commands.Backspace();
+                        }
+                    }
+                    else
+                    {
+                        if (key.Key == ConsoleKey.Tab)
+                        {
+                            input += "    ";
+                            commands.Write("    ");  // Optionally show '*' for each typed character
+                        } else {
+                            input += key.KeyChar;
+                            commands.WriteChar(key.KeyChar);  // Optionally show '*' for each typed character
+                        }
+                    }
+                }
+                return input;
+            });
         }
     }
 }

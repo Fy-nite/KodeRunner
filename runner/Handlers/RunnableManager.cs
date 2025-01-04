@@ -31,8 +31,9 @@ namespace KodeRunner
             foreach (var runnable in _runnables)
             {
                 var attr = runnable.Value.Method.GetCustomAttribute<RunnableAttribute>();
-                Console.WriteLine(
-                    $"Language: {runnable.Key}, Name: {runnable.Value.Method.Name}, Priority: {attr?.Priority ?? 0}"
+                Terminal.Terminal.Write(
+                    $"Language: {runnable.Key}, Name: {runnable.Value.Method.Name}, Priority: {attr?.Priority ?? 0}\n",
+                    "Logs"
                 );
             }
         }
@@ -75,7 +76,7 @@ namespace KodeRunner
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine($"Error loading assembly {dllPath}: {ex.Message}");
+                    Logger.Log($"Error loading assembly {dllPath}: {ex.Message}", "Error");
                 }
             }
         }
@@ -158,12 +159,12 @@ namespace KodeRunner
                         return;
                     }
                 }
-                Console.WriteLine($"Warning: No runnable found for language: {language}");
+                Logger.Log($"No runnable found for language: {language}", "Warning");
             }
             catch (Exception ex)
             {
-                Console.WriteLine(
-                    $"Error executing runnable for language {language}: {ex.Message}"
+                Logger.Log(
+                    $"Error executing runnable for language {language}: {ex.Message}", "Error"
                 );
             }
         }
