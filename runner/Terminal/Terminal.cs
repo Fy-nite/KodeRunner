@@ -18,8 +18,9 @@ namespace KodeRunner.Terminal
             log =         new Window(w/2f+1, h/2f    , w/2f+1 , h/2f+2    , "Logs");
 
             Console.Write("\x1b[1;1H\x1b[?25l");
-            _ = Task.Run(handleCommands); // Process commands without stoping entire console interface
-            
+            _ = Task.Run(handleCommands);
+            _ = Task.Run(RunnablesWindow);
+            //_ = Task.Run(handleCommands);
         }
 
         public static void Write(string str, string window)
@@ -107,11 +108,11 @@ namespace KodeRunner.Terminal
             commands.WriteLine("---------------------- -------- -------------------- ------------");
             foreach (var conn in connections)
             {
-                Console.WriteLine(
+                commands.WriteLine(
                     $"{conn.Id, -22} {conn.Type, -8} {conn.ConnectedAt:yyyy-MM-dd HH:mm:ss} {conn.ClientInfo}"
                 );
             }
-            Console.WriteLine();
+            commands.WriteChar('\n');
         }
         static async Task<string> ReadString()
         {
@@ -149,6 +150,29 @@ namespace KodeRunner.Terminal
                 }
                 return input;
             });
+        }
+        static readonly string[] RunnablesHeader = { "Name", "Language", "Priority" };
+        static async Task RunnablesWindow()
+        {
+            int spacing = (int)Math.Round(runnables.bw / (float)(RunnablesHeader.Length*2));
+            int len = 0;
+            int mul = 1;
+            string header = "";
+            for (int i=0; i<RunnablesHeader.Length; i++)
+            {
+                var str = RunnablesHeader[i];
+                header += new string(Enumerable.Repeat(' ', (spacing*mul)-(str.Length/2)-len).ToArray());
+                len = str.Length/2;
+                mul = 2;
+                header += str;
+            }
+            header += "\n" + new string(Enumerable.Repeat('-', runnables.bw).ToArray()) + "\n";
+            while (true)
+            {
+                runnables.Clear();
+                runnables.Write(header);
+                await Task.Delay(Core.RunnablesUpdateTime);
+            }
         }
     }
 }

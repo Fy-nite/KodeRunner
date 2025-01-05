@@ -7,8 +7,8 @@ namespace KodeRunner.Terminal
         readonly int w;
         readonly int h;
         
-        readonly int bw;
-        readonly int bh;
+        readonly public int bw;
+        readonly public int bh;
         
         int text_x = 0;
         int text_y = 0;
@@ -18,6 +18,8 @@ namespace KodeRunner.Terminal
         char[] buffer;
 
         bool curser;
+
+        public static bool printing = false; // Lock so that one thing is priting at a time
 
         public Window(float x, float y, float w, float h, string title, bool show_curser=false)
             : this((int)Math.Round(x), (int)Math.Round(y), (int)Math.Round(w), (int)Math.Round(h), title, show_curser)
@@ -38,13 +40,20 @@ namespace KodeRunner.Terminal
             Box();
             Update();
         }
+        public void Clear()
+        {
+            text_x = 0;
+            text_y = 0;
+            buffer = Enumerable.Repeat(' ', this.bw * this.bh).ToArray();
+        }
         public static void Goto(int x, int y)
         {
             Console.Write($"\x1b[{Math.Clamp(y, 1, Console.WindowHeight)};{Math.Clamp(x, 1, Console.WindowWidth)}H");
         }
         public static void CreateBox(int xpos, int ypos, int width, int height, string title)
         {
-            Goto(xpos, ypos);
+            while (Window.printing) {Task.Delay(5).Wait();}
+            Window.printing = true;
             for (int y=0; y<height; y++)
             {
                 Goto(xpos, y+ypos);
@@ -61,6 +70,7 @@ namespace KodeRunner.Terminal
                     else {Console.Write(' ');}
                 }
             }
+            Window.printing = false;
         }
         public void WriteChar(char i, bool update = true)
         {
@@ -116,6 +126,8 @@ namespace KodeRunner.Terminal
 
         public void Update()
         {
+            while (Window.printing) {Task.Delay(5).Wait();}
+            Window.printing = true;
             for (int hy=0;hy<bh;hy++) {
                 Goto(x, y+hy);
                 for (int hx=0;hx<bw;hx++) {
@@ -125,6 +137,7 @@ namespace KodeRunner.Terminal
                         Console.Write(buffer[hy * bw + hx]);
                 }
             }
+            Window.printing = false;
         }
         public void Backspace()
         {
