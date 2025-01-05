@@ -19,6 +19,8 @@ namespace KodeRunner.Terminal
 
         bool curser;
 
+        bool autoupdate = true;
+
         public static bool printing = false; // Lock so that one thing is priting at a time
 
         public Window(float x, float y, float w, float h, string title, bool show_curser=false)
@@ -49,6 +51,10 @@ namespace KodeRunner.Terminal
         public static void Goto(int x, int y)
         {
             Console.Write($"\x1b[{Math.Clamp(y, 1, Console.WindowHeight)};{Math.Clamp(x, 1, Console.WindowWidth)}H");
+        }
+        public void DisableAutoUpdate()
+        {
+            autoupdate = false;
         }
         public static void CreateBox(int xpos, int ypos, int width, int height, string title)
         {
@@ -87,7 +93,7 @@ namespace KodeRunner.Terminal
                     scroll();
                 }
             }
-            if (update)
+            if (update && autoupdate)
                 Update();
         }
         public void Write(string str)
@@ -96,7 +102,8 @@ namespace KodeRunner.Terminal
             {
                 WriteChar(str[i], false);
             }
-            Update();
+            if (autoupdate)
+                Update();
         }
         public void WriteLine(string str)
         {

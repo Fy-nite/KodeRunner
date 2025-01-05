@@ -6,25 +6,47 @@ namespace KodeRunner.Terminal
         static Window connections;
         static Window runnables;
         static Window log;
+
+        public static bool advancedterm = true;
         
         public static void init()
         {
             var w = Console.WindowWidth;
             var h = Console.WindowHeight;
-            Console.Clear();
-            commands =    new Window(0     , 0       , w/2f+2 , h+2       , "Console", true);
-            connections = new Window(w/2f+1, 0       , w/2f+1 , h/4f+1.5f , "Connections");
-            runnables =   new Window(w/2f+1, h/4f    , w/2f+1 , h/4f      , "Runnables");
-            log =         new Window(w/2f+1, h/2f    , w/2f+1 , h/2f+2    , "Logs");
+            if (w<150)
+            {
+                advancedterm = false;
+            }
+            if (advancedterm) {
+                Console.Clear();
+                commands =    new Window(0     , 0     , w/2f+2 , h+2       , "Console", true);
+                connections = new Window(w/2f+1, 0     , w/2f+1 , h/4f+1.5f , "Connections");
+                runnables =   new Window(w/2f+1, h/4f  , w/2f+1 , h/4f      , "Runnables");
+                log =         new Window(w/2f+1, h/2f-0.5f, w/2f+1 , h/2f+2    , "Logs");
 
-            Console.Write("\x1b[1;1H\x1b[?25l");
-            _ = Task.Run(handleCommands);
-            _ = Task.Run(RunnablesWindow);
-            //_ = Task.Run(handleCommands);
+                Console.Write("\x1b[1;1H\x1b[?25l");
+                _ = Task.Run(handleCommands);
+                _ = Task.Run(RunnablesWindow);
+                _ = Task.Run(ConnectionsWindow);
+            }
+        }
+
+        private static void commandsWriteLine(string str)
+        {
+            if (advancedterm)
+            {
+                commands.WriteLine(str);
+            } else {
+                Console.WriteLine(str);
+            }
         }
 
         public static void Write(string str, string window)
         {
+            if (!advancedterm) {
+                Console.Write(str);
+                return;
+            }
             switch (window) {
                 case "Console":
                     commands.Write(str);
@@ -79,7 +101,7 @@ namespace KodeRunner.Terminal
                             Implementations.Export(parts[1]);
                             break;
                         default:
-                            commands.WriteLine("Unknown command. Type 'help' for available commands.");
+                            commandsWriteLine("Unknown command. Type 'help' for available commands.");
                             break;
                 }
                 } 
@@ -91,31 +113,37 @@ namespace KodeRunner.Terminal
         }
         static void ShowHelp()
         {
-            commands.WriteLine("Available commands:");
-            commands.WriteLine("  list                  - List all active connections");
-            commands.WriteLine("  disconnect <id>       - Disconnect a specific connection");
-            commands.WriteLine("  disconnecttype <type> - Disconnect all connections of a type");
-            commands.WriteLine("  import <project file> - Import a .KRproject file");
-            commands.WriteLine("  export <project name> - Export a project into a .KRproject file");
-            commands.WriteLine("  help                  - Show this help message");
+            commandsWriteLine("Available commands:");
+            commandsWriteLine("  list                  - List all active connections");
+            commandsWriteLine("  disconnect <id>       - Disconnect a specific connection");
+            commandsWriteLine("  disconnecttype <type> - Disconnect all connections of a type");
+            commandsWriteLine("  import <project file> - Import a .KRproject file");
+            commandsWriteLine("  export <project name> - Export a project into a .KRproject file");
+            commandsWriteLine("  help                  - Show this help message");
         }
 
         static void ListConnections()
         {
             var connections = Program.connectionManager.ListConnections();
-            commands.WriteLine("\nActive connections:");
-            commands.WriteLine("ID                     Type     Connected At          Client Info");
-            commands.WriteLine("---------------------- -------- -------------------- ------------");
+            commandsWriteLine("\nActive connections:");
+            commandsWriteLine("ID                     Type     Connected At          Client Info");
+            commandsWriteLine("---------------------- -------- -------------------- ------------");
             foreach (var conn in connections)
             {
-                commands.WriteLine(
+                commandsWriteLine(
                     $"{conn.Id, -22} {conn.Type, -8} {conn.ConnectedAt:yyyy-MM-dd HH:mm:ss} {conn.ClientInfo}"
                 );
             }
-            commands.WriteChar('\n');
+            if (advancedterm)
+            {
+                commands.WriteChar('\n');
+            } else {Console.Write('\n');}
         }
         static async Task<string> ReadString()
         {
+            if (!advancedterm) {
+                return await Console.In.ReadLineAsync();
+            }
             return await Task.Run(() =>
             {
                 string input = "";
@@ -152,27 +180,93 @@ namespace KodeRunner.Terminal
             });
         }
         static readonly string[] RunnablesHeader = { "Name", "Language", "Priority" };
+        static string CreatePaddedString(string[] data, int len)
+        {
+            int spacing = (int)Math.Round(len / (float)(data.Length+1));
+            int sub = 0;
+            int mul = 1;
+            string ret = "";
+            for (int i=0; i<data.Length; i++)
+            {
+                var str = data[i];
+                if (i == 2)
+                    ret += new string(Enumerable.Repeat(' ', (spacing*mul)-(str.Length/2)-sub).ToArray());
+                else
+                    ret += new string(Enumerable.Repeat(' ', (spacing*mul)-((str.Length+1)/2)-sub).ToArray());
+                sub = str.Length/2;
+                mul = 1;
+                ret += str;
+            }
+            return ret;
+        }
+        private static readonly List<Tuple<string, string, int>> runnables_list = new List<Tuple<string, string, int>>();
+        static string header;
         static async Task RunnablesWindow()
         {
-            int spacing = (int)Math.Round(runnables.bw / (float)(RunnablesHeader.Length*2));
-            int len = 0;
-            int mul = 1;
-            string header = "";
-            for (int i=0; i<RunnablesHeader.Length; i++)
-            {
-                var str = RunnablesHeader[i];
-                header += new string(Enumerable.Repeat(' ', (spacing*mul)-(str.Length/2)-len).ToArray());
-                len = str.Length/2;
-                mul = 2;
-                header += str;
-            }
-            header += "\n" + new string(Enumerable.Repeat('-', runnables.bw).ToArray()) + "\n";
+            header = CreatePaddedString(RunnablesHeader, runnables.bw);
+            header += "\n" + new string(Enumerable.Repeat('-', runnables.bw).ToArray());
+            runnables.DisableAutoUpdate();
             while (true)
             {
-                runnables.Clear();
-                runnables.Write(header);
+                UpdateRunnables();
                 await Task.Delay(Core.RunnablesUpdateTime);
             }
+        }
+        public static void UpdateRunnables()
+        {
+            if (!advancedterm) {return;}
+            runnables.Clear();
+            runnables.Write(header);
+            
+            foreach (var runnable in runnables_list)
+            {
+                runnables.WriteLine(CreatePaddedString(
+                    new string[] { runnable.Item1, runnable.Item2, runnable.Item3.ToString() },
+                    runnables.bw
+                ));
+            }
+
+            runnables.Update();
+        }
+        public static void AddRunnable(string name, string language, int priority)
+        {
+            runnables_list.Add(new Tuple<string, string, int>(name, language, priority));
+        }
+
+        static readonly string[] ConnectionsHeader = { "ID", "Type", "Connected At", "Client Info" };
+        static string connections_header;
+        static async Task ConnectionsWindow()
+        {
+            connections_header = CreatePaddedString(ConnectionsHeader, connections.bw);
+            connections_header += "\n" + new string(Enumerable.Repeat('-', connections.bw).ToArray());
+            connections.DisableAutoUpdate();
+            while (true)
+            {
+                UpdateConnections();
+                await Task.Delay(1000);
+            }
+        }
+        public static void UpdateConnections()
+        {
+            connections.Clear();
+            connections.Write(connections_header);
+            
+            foreach (var connection in Program.connectionManager.ListConnections())
+            {
+                try {
+                    connections.WriteLine(CreatePaddedString(
+                        new string[] {
+                            connection.Id,
+                            connection.Type,
+                            $"{connection.ConnectedAt:yyyy-MM-dd HH:mm:ss}",
+                            connection.ClientInfo
+                        },
+                        connections.bw
+                    ));
+                } catch (Exception ex) {Logger.Log(ex.Message, "Error");}
+            }
+
+            connections.Update();
         }
     }
 }

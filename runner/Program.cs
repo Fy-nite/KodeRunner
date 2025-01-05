@@ -43,7 +43,9 @@ namespace KodeRunner
         static async Task Main(string[] args)
         {
             Console.CancelKeyPress += delegate {
-                Console.Write("\x1b[?1049h\x1b[?25h");
+                if (Terminal.Terminal.advancedterm) {
+                    Console.Write("\x1b[?1049h\x1b[?25h");
+                }
             };
             var config = Configuration.Load();
             // Start the console command processor
@@ -79,10 +81,12 @@ namespace KodeRunner
                 }
             }
 
-            runnableManager.print();
+            //runnableManager.print();
+            Terminal.Terminal.UpdateRunnables();
             server.Start();
 
             Logger.Log($"KodeRunner v{Core.GetVersion()} started");
+            Logger.Log("Please report any errors at https://git.gay/Finite/KodeRunner/issues");
             Logger.Log(
                 $"WebSocket server started at ws://{config.WebServer.Host}:{config.WebServer.Port}/"
             );
@@ -162,7 +166,7 @@ namespace KodeRunner
                             );
                             break;
                         default:
-                            Console.WriteLine($"Invalid endpoint: {path}");
+                            Logger.Log($"Invalid endpoint: {path}", "Warning");
                             break;
                     }
                 }
@@ -220,7 +224,7 @@ namespace KodeRunner
             int bufferSize
         )
         {
-            Console.WriteLine("Code endpoint connected");
+            Logger.Log("Code endpoint connected");
             var projectnamefound = false;
             var filenamefound = false;
             try
@@ -299,13 +303,13 @@ namespace KodeRunner
 
                             if (fileNameMatch.Success)
                             {
-                                Console.WriteLine($"File name: {fileNameMatch.Groups[1].Value}");
+                                Logger.Log($"File name: {fileNameMatch.Groups[1].Value}");
                                 filenamefound = true;
                             }
 
                             if (projectNameMatch.Success)
                             {
-                                Console.WriteLine(
+                                Logger.Log(
                                     $"Project name: {projectNameMatch.Groups[1].Value}"
                                 );
                                 projectnamefound = true;
@@ -337,7 +341,7 @@ namespace KodeRunner
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"WebSocket error: {ex.Message}");
+                Logger.Log($"WebSocket error: {ex.Message}", "Error");
                 connectionManager.RemoveConnection(connectionId);
                 runnableManager.LoadRunnables();
             }
@@ -349,7 +353,7 @@ namespace KodeRunner
             int bufferSize
         )
         {
-            Console.WriteLine("PMS endpoint connected");
+            Logger.Log("PMS endpoint connected");
             _ = SendToWebSocket(
                 "PMS",
                 $"Welcome to KodeRunner!\n PMS Version: {PMS_VERSION}\n Have a nice day!"
@@ -403,7 +407,7 @@ namespace KodeRunner
                             await memoryStream.WriteAsync(buffer, 0, result.Count);
                             _ = memoryStream.Seek(0, SeekOrigin.Begin);
                             var message = await ReadFromMemoryStream(memoryStream);
-                            Console.WriteLine($"Received message: {message}");
+                            Logger.Log($"Received message: {message}");
                             // we now have the json message in the message variable
                             // we can now parse it into a dictionary
                             var messageDict = JsonConvert.DeserializeObject<
@@ -412,12 +416,12 @@ namespace KodeRunner
                             // we can now access the values in the dictionary
                             if (messageDict.TryGetValue("Project_Name", out string project))
                             {
-                                Console.WriteLine($"Project: {project}");
+                                Logger.Log($"Project: {project}");
                                 ProjectName = project.Trim();
                             }
                             if (messageDict.TryGetValue("Main_File", out string mainfile))
                             {
-                                Console.WriteLine($"Main File: {mainfile}");
+                                Logger.Log($"Main File: {mainfile}");
                                 Main_File = mainfile;
                             }
                             if (
@@ -427,17 +431,17 @@ namespace KodeRunner
                                 )
                             )
                             {
-                                Console.WriteLine($"Build Systems: {buildsystems}");
+                                Logger.Log($"Build Systems: {buildsystems}");
                                 Project_Build_Systems = buildsystems;
                             }
                             if (messageDict.TryGetValue("Project_Output", out string output))
                             {
-                                Console.WriteLine($"Project Output: {output}");
+                                Logger.Log($"Project Output: {output}");
                                 Project_Output = output;
                             }
                             if (messageDict.TryGetValue("Run_On_Build", out string runonbuild))
                             {
-                                Console.WriteLine($"Run On Build: {runonbuild}");
+                                Logger.Log($"Run On Build: {runonbuild}");
                                 Run_On_Build = runonbuild == "True";
                             }
 
@@ -527,7 +531,7 @@ namespace KodeRunner
                             }
                             catch (Exception ex)
                             {
-                                Console.WriteLine($"Error executing runnable: {ex.Message}");
+                                Logger.Log($"Error executing runnable: {ex.Message}");
                                 var errorMessage = JsonConvert.SerializeObject(
                                     new
                                     {
@@ -549,7 +553,7 @@ namespace KodeRunner
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"WebSocket error: {ex.Message}");
+                Logger.Log($"WebSocket error: {ex.Message}", "Error");
                 connectionManager.RemoveConnection(connectionId);
                 runnableManager.LoadRunnables();
             }
@@ -561,7 +565,7 @@ namespace KodeRunner
             int bufferSize
         )
         {
-            Console.WriteLine("Stop endpoint connected");
+            Logger.Log("Stop endpoint connected");
             try
             {
                 var buffer = new byte[bufferSize];
@@ -603,7 +607,7 @@ namespace KodeRunner
                                 && shouldStop
                             )
                             {
-                                Console.WriteLine("Stopping all processes...");
+                                Logger.Log("Stopping all processes...");
                                 TerminalProcess.StopAllProcesses();
 
                                 // Send confirmation back to client
@@ -624,7 +628,7 @@ namespace KodeRunner
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"WebSocket error: {ex.Message}");
+                Logger.Log($"WebSocket error: {ex.Message}", "Error");
                 connectionManager.RemoveConnection(connectionId);
                 runnableManager.LoadRunnables();
             }

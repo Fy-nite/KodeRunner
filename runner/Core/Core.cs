@@ -27,7 +27,7 @@ namespace KodeRunner
         // Base directory for all KodeRunner files
         public static string RootDir = Path.Combine(Directory.GetCurrentDirectory(), "koderunner");
 
-        public static int RunnablesUpdateTime = 10000; // in ms
+        public static int RunnablesUpdateTime = 1000; // in ms
         
         // All other directories are now relative to RootDir
         public static string LoggerHandle = "[KodeRunner]: ";

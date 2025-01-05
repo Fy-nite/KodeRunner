@@ -185,6 +185,7 @@ namespace KodeRunner
             string description = null
         )
         {
+            Terminal.Terminal.AddRunnable(name, language, priority);
             string key = $"{language}_{name}_{priority}";
             _runnables[key] = action;
         }
