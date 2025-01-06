@@ -21,7 +21,7 @@ namespace KodeRunner
 
             if (_config.Logging.EnableConsoleLogging)
             {
-                Console.WriteLine(logMessage);
+                Terminal.Terminal.Write(logMessage + "\n", "Logs");
             }
 
             if (_config.Logging.EnableFileLogging)

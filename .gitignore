@@ -2,7 +2,7 @@ runner/bin
 runner/build
 runner/obj
 docs/*
-setup/KodeRunner/*
+setup/KodeRunner
 runner/obj
 .devcontainer/*
 .devcontainer.json

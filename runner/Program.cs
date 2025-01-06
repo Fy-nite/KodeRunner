@@ -1,14 +1,9 @@
-﻿using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Net;
+﻿using System.Net;
 using System.Net.WebSockets;
-using System.Reflection.Metadata;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
-using System.Threading.Tasks;
-using KodeRunner;
+using KodeRunner.Terminal;
 using KodeRunner.Config;
 using Newtonsoft.Json;
 
@@ -16,7 +11,7 @@ namespace KodeRunner
 {
     class Program
     {
-        static ConnectionManager connectionManager = new ConnectionManager();
+        public static ConnectionManager connectionManager = new ConnectionManager();
         static Dictionary<string, WebSocket> activeConnections =
             new Dictionary<string, WebSocket>();
         static TerminalProcess terminalProcess = new TerminalProcess();
@@ -47,7 +42,15 @@ namespace KodeRunner
         /// <param name="args">Command-line arguments.</param>
         static async Task Main(string[] args)
         {
+            Console.CancelKeyPress += delegate {
+                if (Terminal.Terminal.advancedterm) {
+                    Console.Write("\x1b[?1049h\x1b[?25h");
+                }
+            };
             var config = Configuration.Load();
+            // Start the console command processor
+            Terminal.Terminal.init();
+
             Logger.Log("Starting KodeRunner...");
             EnsureFolders();
             // setup args for cmd creating dirs
@@ -78,19 +81,18 @@ namespace KodeRunner
                 }
             }
 
-            runnableManager.print();
+            //runnableManager.print();
+            Terminal.Terminal.UpdateRunnables();
             server.Start();
 
             Logger.Log($"KodeRunner v{Core.GetVersion()} started");
+            Logger.Log("Please report any errors at https://git.gay/Finite/KodeRunner/issues");
             Logger.Log(
                 $"WebSocket server started at ws://{config.WebServer.Host}:{config.WebServer.Port}/"
             );
 
             BuildProcess buildProcess = new BuildProcess();
             buildProcess.SetupCodeDir();
-
-            // Start the console command processor
-            _ = Task.Run(ProcessConsoleCommands);
 
             while (true)
             {
@@ -164,86 +166,14 @@ namespace KodeRunner
                             );
                             break;
                         default:
-                            Console.WriteLine($"Invalid endpoint: {path}");
+                            Logger.Log($"Invalid endpoint: {path}", "Warning");
                             break;
                     }
                 }
             }
         }
 
-        static async Task ProcessConsoleCommands()
-        {
-            while (true)
-            {
-                var command = await Console.In.ReadLineAsync();
-                if (string.IsNullOrEmpty(command))
-                    continue;
-
-                var parts = command.Split(' ');
-            try {
-                switch (parts[0].ToLower())
-                {
-                    case "list":
-                        ListConnections();
-                        break;
-                    case "disconnect":
-                        if (parts.Length > 1)
-                        {
-                            await connectionManager.DisconnectById(parts[1]);
-                        }
-                        break;
-                    case "disconnecttype":
-                        if (parts.Length > 1)
-                        {
-                            await connectionManager.DisconnectByType(parts[1]);
-                        }
-                        break;
-                    case "help":
-                        ShowHelp();
-                        break;
-                    case "import":
-                        Implementations.Import(parts[1]);
-                        break;
-                    case "export":
-                        Implementations.Export(parts[1]);
-                        break;
-                    default:
-                        Console.WriteLine("Unknown command. Type 'help' for available commands.");
-                        break;
-                }
-            } 
-            catch (Exception ex)
-            {
-                Logger.Log($"Error while processing command {parts[0]}: {ex.Message}", "error");
-            }
-            }
-        }
-
-        static void ShowHelp()
-        {
-            Console.WriteLine("Available commands:");
-            Console.WriteLine("  list                  - List all active connections");
-            Console.WriteLine("  disconnect <id>       - Disconnect a specific connection");
-            Console.WriteLine("  disconnecttype <type> - Disconnect all connections of a type");
-            Console.WriteLine("  import <project file> - Import a .KRproject file");
-            Console.WriteLine("  export <project name> - Export a project into a .KRproject file");
-            Console.WriteLine("  help                  - Show this help message");
-        }
-
-        static void ListConnections()
-        {
-            var connections = connectionManager.ListConnections();
-            Console.WriteLine("\nActive connections:");
-            Console.WriteLine("ID                     Type     Connected At          Client Info");
-            Console.WriteLine("---------------------- -------- -------------------- ------------");
-            foreach (var conn in connections)
-            {
-                Console.WriteLine(
-                    $"{conn.Id, -22} {conn.Type, -8} {conn.ConnectedAt:yyyy-MM-dd HH:mm:ss} {conn.ClientInfo}"
-                );
-            }
-            Console.WriteLine();
-        }
+        
 
         static async Task HandleTerminalInput(
             WebSocket webSocket,
@@ -294,7 +224,7 @@ namespace KodeRunner
             int bufferSize
         )
         {
-            Console.WriteLine("Code endpoint connected");
+            Logger.Log("Code endpoint connected");
             var projectnamefound = false;
             var filenamefound = false;
             try
@@ -373,13 +303,13 @@ namespace KodeRunner
 
                             if (fileNameMatch.Success)
                             {
-                                Console.WriteLine($"File name: {fileNameMatch.Groups[1].Value}");
+                                Logger.Log($"File name: {fileNameMatch.Groups[1].Value}");
                                 filenamefound = true;
                             }
 
                             if (projectNameMatch.Success)
                             {
-                                Console.WriteLine(
+                                Logger.Log(
                                     $"Project name: {projectNameMatch.Groups[1].Value}"
                                 );
                                 projectnamefound = true;
@@ -411,7 +341,7 @@ namespace KodeRunner
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"WebSocket error: {ex.Message}");
+                Logger.Log($"WebSocket error: {ex.Message}", "Error");
                 connectionManager.RemoveConnection(connectionId);
                 runnableManager.LoadRunnables();
             }
@@ -423,7 +353,7 @@ namespace KodeRunner
             int bufferSize
         )
         {
-            Console.WriteLine("PMS endpoint connected");
+            Logger.Log("PMS endpoint connected");
             _ = SendToWebSocket(
                 "PMS",
                 $"Welcome to KodeRunner!\n PMS Version: {PMS_VERSION}\n Have a nice day!"
@@ -477,7 +407,7 @@ namespace KodeRunner
                             await memoryStream.WriteAsync(buffer, 0, result.Count);
                             _ = memoryStream.Seek(0, SeekOrigin.Begin);
                             var message = await ReadFromMemoryStream(memoryStream);
-                            Console.WriteLine($"Received message: {message}");
+                            Logger.Log($"Received message: {message}");
                             // we now have the json message in the message variable
                             // we can now parse it into a dictionary
                             var messageDict = JsonConvert.DeserializeObject<
@@ -486,12 +416,12 @@ namespace KodeRunner
                             // we can now access the values in the dictionary
                             if (messageDict.TryGetValue("Project_Name", out string project))
                             {
-                                Console.WriteLine($"Project: {project}");
+                                Logger.Log($"Project: {project}");
                                 ProjectName = project.Trim();
                             }
                             if (messageDict.TryGetValue("Main_File", out string mainfile))
                             {
-                                Console.WriteLine($"Main File: {mainfile}");
+                                Logger.Log($"Main File: {mainfile}");
                                 Main_File = mainfile;
                             }
                             if (
@@ -501,17 +431,17 @@ namespace KodeRunner
                                 )
                             )
                             {
-                                Console.WriteLine($"Build Systems: {buildsystems}");
+                                Logger.Log($"Build Systems: {buildsystems}");
                                 Project_Build_Systems = buildsystems;
                             }
                             if (messageDict.TryGetValue("Project_Output", out string output))
                             {
-                                Console.WriteLine($"Project Output: {output}");
+                                Logger.Log($"Project Output: {output}");
                                 Project_Output = output;
                             }
                             if (messageDict.TryGetValue("Run_On_Build", out string runonbuild))
                             {
-                                Console.WriteLine($"Run On Build: {runonbuild}");
+                                Logger.Log($"Run On Build: {runonbuild}");
                                 Run_On_Build = runonbuild == "True";
                             }
 
@@ -601,7 +531,7 @@ namespace KodeRunner
                             }
                             catch (Exception ex)
                             {
-                                Console.WriteLine($"Error executing runnable: {ex.Message}");
+                                Logger.Log($"Error executing runnable: {ex.Message}");
                                 var errorMessage = JsonConvert.SerializeObject(
                                     new
                                     {
@@ -623,7 +553,7 @@ namespace KodeRunner
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"WebSocket error: {ex.Message}");
+                Logger.Log($"WebSocket error: {ex.Message}", "Error");
                 connectionManager.RemoveConnection(connectionId);
                 runnableManager.LoadRunnables();
             }
@@ -635,7 +565,7 @@ namespace KodeRunner
             int bufferSize
         )
         {
-            Console.WriteLine("Stop endpoint connected");
+            Logger.Log("Stop endpoint connected");
             try
             {
                 var buffer = new byte[bufferSize];
@@ -677,7 +607,7 @@ namespace KodeRunner
                                 && shouldStop
                             )
                             {
-                                Console.WriteLine("Stopping all processes...");
+                                Logger.Log("Stopping all processes...");
                                 TerminalProcess.StopAllProcesses();
 
                                 // Send confirmation back to client
@@ -698,7 +628,7 @@ namespace KodeRunner
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"WebSocket error: {ex.Message}");
+                Logger.Log($"WebSocket error: {ex.Message}", "Error");
                 connectionManager.RemoveConnection(connectionId);
                 runnableManager.LoadRunnables();
             }
