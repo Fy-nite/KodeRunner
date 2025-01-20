@@ -1,5 +1,5 @@
 all: prepare
-	gcc -o build/kode c/kode.c 
+	gcc -o build/kodeinstaller c/kode.c 
 prepare:
 	mkdir -p build 
 
