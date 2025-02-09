@@ -1,6 +1,11 @@
 #include <stdlib.h>
-#include <stdio.h>
+#ifdef _WIN32
+#include <direct.h>
+#define chdir _chdir
+#else
 #include <unistd.h>
+#endif
+#include <stdio.h>
 #include <string.h>
 void install() {
     printf("Installing...\n");

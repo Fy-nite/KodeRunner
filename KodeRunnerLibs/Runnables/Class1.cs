@@ -188,14 +188,12 @@ public class NodeJsRunnable : IRunnable
         terminalProcess.ExecuteCommand(runCommand).Wait();
     }
 }
-
-// C runnable
-[Runnable("c", "clang", 0)]
+[Runnable("c", "gcc", 0)]
 public class CRunnable : IRunnable
 {
     public string Name => "c";
     public string Language => "c";
-    public int Priority => 0;
+    public int Priority => 0; 
     public string description => "Executes C projects";
 
     public void Execute(Provider.ISettingsProvider settings)
@@ -204,7 +202,6 @@ public class CRunnable : IRunnable
 
         var terminalProcess = new TerminalProcess();
 
-        // Capture the PMS WebSocket from settings
         WebSocket pmsWebSocket = settings.PmsWebSocket;
 
         terminalProcess.OnOutput += async (output) =>
@@ -225,18 +222,13 @@ public class CRunnable : IRunnable
         var outputFilePath = Path.Combine(codePath, settings.Output);
         var mainFilePath = Path.Combine(codePath, settings.Main_File);
 
-        // Add some color to the output
-        var buildCommand =
-            $"echo '\u001b[32m<color=green>Building C project...\u001b[0m' && "
-            + $"clang -o \"{outputFilePath}\" \"{mainFilePath}\"";
-
-        terminalProcess.ExecuteCommand(buildCommand).Wait();
+        terminalProcess.ExecuteCommand($"echo '\u001b[32m<color=green>Building C project...\u001b[0m'").Wait();
+        terminalProcess.ExecuteCommand($"gcc -o \"{outputFilePath}\" \"{mainFilePath}\"").Wait();
 
         if (settings.Run_On_Build)
         {
-            var runCommand =
-                $"echo '\u001b[32mRunning program...\u001b[0m' && " + $"\"{outputFilePath}\"";
-            terminalProcess.ExecuteCommand(runCommand).Wait();
+            terminalProcess.ExecuteCommand($"echo '\u001b[32mRunning program...\u001b[0m'").Wait();
+            terminalProcess.ExecuteCommand($"\"{outputFilePath}\"").Wait();
         }
     }
 }

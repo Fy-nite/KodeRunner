@@ -2,6 +2,8 @@ runner/bin
 runner/build
 runner/obj
 docs/*
+KodeRunnerLibs/Runnables/bin
+KodeRunnerLibs/Runnables/obj
 setup/KodeRunner
 runner/obj
 .devcontainer/*

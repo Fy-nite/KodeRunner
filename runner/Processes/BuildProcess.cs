@@ -36,11 +36,14 @@ namespace KodeRunner
 
         public BuildProcess()
         {
+            var iswindows = System.Runtime.InteropServices.RuntimeInformation.IsOSPlatform(
+                System.Runtime.InteropServices.OSPlatform.Windows
+            );
             _process = new Process
             {
                 StartInfo = new ProcessStartInfo
                 {
-                    FileName = "/bin/bash", // Use "cmd.exe" for Windows
+                    FileName = iswindows ? "powershell.exe" : "/bin/bash",
                     UseShellExecute = false,
                     RedirectStandardInput = true,
                     RedirectStandardOutput = true,

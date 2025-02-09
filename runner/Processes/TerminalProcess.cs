@@ -99,14 +99,17 @@ namespace KodeRunner.Processes
 
             try
             {
+                var iswindows = System.Runtime.InteropServices.RuntimeInformation.IsOSPlatform(
+                    System.Runtime.InteropServices.OSPlatform.Windows
+                );
                 var tcs = new TaskCompletionSource<int>();
 
                 var process = new Process
                 {
                     StartInfo = new ProcessStartInfo
                     {
-                        FileName = "/bin/bash",
-                        Arguments = $"-c \"{command}\"",
+                        FileName = iswindows ? "powershell.exe" : "/bin/bash",
+                        Arguments = iswindows ? $"-Command \"{command}\"" : $"-c \"{command}\"",
                         RedirectStandardOutput = true,
                         RedirectStandardError = true,
                         RedirectStandardInput = true, // Add this line
