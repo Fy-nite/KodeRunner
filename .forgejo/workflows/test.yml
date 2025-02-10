@@ -1,0 +1,47 @@
+on: 
+  workflow_dispatch:
+jobs:
+  build-musl:
+    runs-on: docker
+    container:
+      image: node:alpine
+    steps:
+      - run: apk update
+      - name: get system deps
+        run: |
+          wget -O dotnet.tar.gz https://builds.dotnet.microsoft.com/dotnet/Runtime/$DOTNET_VERSION/dotnet-runtime-$DOTNET_VERSION-linux-musl-x64.tar.gz
+          dotnet_sha512='2a97a07e9fb2dcc8225850c9574a014f9a111147d87ded6293eb7bf26cf6bee6cc516713c02c13a08e9776dbadd583627f05e6e62daaaf96f653e28c0b37b25e'
+          echo "$dotnet_sha512  dotnet.tar.gz" | sha512sum -c -
+          mkdir -p /usr/share/dotnet
+          tar -oxzf dotnet.tar.gz -C /usr/share/dotnet
+          rm dotnet.tar.gz
+          ln -s /usr/share/dotnet/dotnet /usr/bin/dotnet
+          apk add icu-dev
+      - uses: actions/checkout@v3
+      - uses: https://github.com/actions/setup-dotnet@v4
+        with:
+          global-json-file: runner/globals.json
+          working-directory: runner/
+      - name: build KodeRunner
+        run: dotnet publish .
+        working-directory: runner/
+      - 
+        name: build runners
+        working-directory: KodeRunnerLibs/
+        run: dotnet publish .
+      - run: mkdir -p runner/bin/Release/net8.0/publish/koderunner/Runnables
+      - run: cp KodeRunnerLibs/Runnables/bin/Release/net8.0/publish/Runnables.dll runner/bin/Release/net8.0/publish/koderunner/Runnables/Runnables.dll
+      - 
+        name: Archive artifact KodeRunner
+        run: tar czvf ../../../../../KodeRunner.tar.gz *
+        working-directory: runner/bin/Release/net8.0/publish/
+      - name: Upload KodeRunner
+        uses: actions/upload-artifact@v3
+        with:
+          name: KodeRunner-linux64-musl.tar.gz
+          path: KodeRunner.tar.gz
+
+    
+
+
+          
