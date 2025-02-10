@@ -26,7 +26,7 @@ jobs:
       - 
         name: build runners
         working-directory: KodeRunnerLibs/
-        run: dotnet publsh .
+        run: dotnet publish .
       - 
         name: Archive artifact runners
         run: tar czvf ../../../../../../runners.tar.gz .
