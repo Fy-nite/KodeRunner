@@ -18,7 +18,7 @@ jobs:
         working-directory: runner/
       - 
         name: Archive artifact KodeRunner-base
-        run: tar czvf ../../../../../KodeRunner-base.tar.gz .
+        run: tar czvf ../../../../../KodeRunner-base.tar.gz *
         working-directory: runner/bin/Release/net8.0/publish/
       - name: Upload KodeRunner-base
         uses: actions/upload-artifact@v3
@@ -31,7 +31,7 @@ jobs:
         run: dotnet publish .
       - 
         name: Archive artifact runners
-        run: tar czvf ../../../../../../runners.tar.gz .
+        run: tar czvf ../../../../../../runners.tar.gz *
         working-directory: KodeRunnerLibs/Runnables/bin/Release/net8.0/publish/
       - name: Upload KodeRunner-base
         uses: actions/upload-artifact@v3
@@ -42,7 +42,7 @@ jobs:
       - run: cp KodeRunnerLibs/Runnables/bin/Release/net8.0/publish/Runnables.dll runner/bin/Release/net8.0/publish/koderunner/Runnables/Runnables.dll
       - 
         name: Archive artifact KodeRunner
-        run: tar czvf ../../../../../KodeRunner.tar.gz .
+        run: tar czvf ../../../../../KodeRunner.tar.gz *
         working-directory: runner/bin/Release/net8.0/publish/
       - name: Upload KodeRunner
         uses: actions/upload-artifact@v3
