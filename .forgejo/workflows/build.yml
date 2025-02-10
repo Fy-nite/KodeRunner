@@ -1,4 +1,6 @@
-on: workflow_dispatch
+on: 
+  push:
+    - master
 jobs:
   build:
     runs-on: docker
