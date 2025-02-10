@@ -1,6 +1,12 @@
 on: 
   push:
-    - master
+    branches:
+      - master
+    paths:
+      - '**.cs'
+      - '**.csproj'
+      - '.forgejo\workflows\build.yml'
+  workflow_dispatch:
 jobs:
   build:
     runs-on: docker
@@ -49,6 +55,59 @@ jobs:
         with:
           name: KodeRunner-linux64.tar.gz
           path: KodeRunner.tar.gz
+  build-musl:
+    runs-on: docker
+    container:
+      image: hub.docker.com/forumi0721/alpine-dotnet-sdk
+    steps:
+      - run: apk update
+      - name: get system deps
+        run: apk add libicu-dev
+      - uses: actions/checkout@v3
+      - uses: https://github.com/actions/setup-dotnet@v4
+        with:
+          global-json-file: runner/globals.json
+          working-directory: runner/
+      - name: build KodeRunner
+        run: dotnet publish .
+        working-directory: runner/
+      - 
+        name: build runners
+        working-directory: KodeRunnerLibs/
+        run: dotnet publish .
+      - run: mkdir -p runner/bin/Release/net8.0/publish/koderunner/Runnables
+      - run: cp KodeRunnerLibs/Runnables/bin/Release/net8.0/publish/Runnables.dll runner/bin/Release/net8.0/publish/koderunner/Runnables/Runnables.dll
+      - 
+        name: Archive artifact KodeRunner
+        run: tar czvf ../../../../../KodeRunner.tar.gz *
+        working-directory: runner/bin/Release/net8.0/publish/
+      - name: Upload KodeRunner
+        uses: actions/upload-artifact@v3
+        with:
+          name: KodeRunner-linux64-musl.tar.gz
+          path: KodeRunner.tar.gz
+  packages-docker:
+    runs-on: self-hosted-docker
+    needs:
+      - build-musl
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+      -
+        name: install deps
+        run: |
+          apt-get update
+          apt-get upgrade
+          apt-get install -y podman
+      - name: download musl build
+        uses: actions/download-artifact@v3
+        with:
+          name: KodeRunner-linux64-musl.tar.gz
+      - name: build container
+        run: podman build .
+        working-directory: DockerRoot/
+
+    
 
 
           
