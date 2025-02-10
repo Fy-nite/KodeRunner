@@ -11,15 +11,21 @@ jobs:
         with:
           global-json-file: runner/globals.json
           working-directory: runner/
-      - run: dotnet publish .
+      - name: build KodeRunner
+        run: dotnet publish .
         working-directory: runner/
       - 
         name: archive artifact
         run: tar czvf ../../../../../upload.tar.gz .
         working-directory: runner/bin/Release/net8.0/publish/
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v3
         with:
-          name: ci-cached
+          name: ci-cached-runner
           path: upload.tar.gz
+      - 
+        name: build runners
+        working-directory: KodeRunnerLibs/
+        run: dotnet publish .
+
 
           
