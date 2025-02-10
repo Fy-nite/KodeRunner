@@ -58,7 +58,7 @@ jobs:
   build-musl:
     runs-on: docker
     container:
-      image: hub.docker.com/forumi0721/alpine-dotnet-sdk
+      image: docker.io/forumi0721/alpine-dotnet-sdk
     steps:
       - run: apk update
       - name: get system deps
