@@ -15,11 +15,11 @@ jobs:
         working-directory: runner/
       - 
         name: archive artifact
-        run: tar czvf ../../../../../upload.tar.gz
+        run: tar czvf ../../../../../upload.tar.gz .
         working-directory: runner/bin/Release/net8.0/publish/
       - uses: actions/upload-artifact@v4
         with:
           name: ci-cached
           path: upload.tar.gz
-          
+
           
