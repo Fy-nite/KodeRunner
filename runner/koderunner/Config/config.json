@@ -1,11 +1,11 @@
 {
   "ProcessTimeoutSeconds": 30,
-  "LogLevel": "debug",
+  "LogLevel": "Info",
   "BufferSize": 8192,
   "EnableDebugMode": false,
   "WebServer": {
     "Host": "localhost",
-    "Port": 5001,
+    "Port": 5000,
     "MaxConnections": 100
   },
   "Logging": {

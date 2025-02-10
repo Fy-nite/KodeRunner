@@ -1,5 +1,6 @@
 {
     "files.associations": {
         "code.h": "c"
-    }
+    },
+    "codetogether.virtualCursorJoin": "ownVirtualCursor"
 }

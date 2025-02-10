@@ -8,21 +8,26 @@ namespace KodeRunner.Terminal
         static Window log;
 
         public static bool advancedterm = true;
-        
+
         public static void init()
         {
             var w = Console.WindowWidth;
             var h = Console.WindowHeight;
-            if (w<150)
+            if (w < 150 || h < 50)
             {
                 advancedterm = false;
+       
+                Console.WriteLine("Console size is too small to enable advanced terminal features."); 
+                // create a task
+                      _ = Task.Run(handleCommands);
             }
-            if (advancedterm) {
+            if (advancedterm)
+            {
                 Console.Clear();
-                commands =    new Window(0     , 0     , w/2f+2 , h+2       , "Console", true);
-                connections = new Window(w/2f+1, 0     , w/2f+1 , h/4f+1.5f , "Connections");
-                runnables =   new Window(w/2f+1, h/4f  , w/2f+1 , h/4f      , "Runnables");
-                log =         new Window(w/2f+1, h/2f-0.5f, w/2f+1 , h/2f+2    , "Logs");
+                commands = new Window(0, 0, w / 2f + 2, h + 2, "Console", true);
+                connections = new Window(w / 2f + 1, 0, w / 2f + 1, h / 4f + 1.5f, "Connections");
+                runnables = new Window(w / 2f + 1, h / 4f, w / 2f + 1, h / 4f, "Runnables");
+                log = new Window(w / 2f + 1, h / 2f - 0.5f, w / 2f + 1, h / 2f + 2, "Logs");
 
                 Console.Write("\x1b[1;1H\x1b[?25l");
                 _ = Task.Run(handleCommands);
@@ -36,18 +41,22 @@ namespace KodeRunner.Terminal
             if (advancedterm)
             {
                 commands.WriteLine(str);
-            } else {
+            }
+            else
+            {
                 Console.WriteLine(str);
             }
         }
 
         public static void Write(string str, string window)
         {
-            if (!advancedterm) {
+            if (!advancedterm)
+            {
                 Console.Write(str);
                 return;
             }
-            switch (window) {
+            switch (window)
+            {
                 case "Console":
                     commands.Write(str);
                     break;
@@ -62,18 +71,27 @@ namespace KodeRunner.Terminal
                     break;
             }
         }
-        
+
         public static async Task handleCommands()
         {
             while (true)
             {
-                commands.Write("> ");
+                if (advancedterm)
+                {
+                    commands.Write("> ");
+                }
+                else
+                {
+                    Console.Write("> ");
+                }
+                
                 var command = await ReadString();
                 if (string.IsNullOrEmpty(command))
                     continue;
 
                 var parts = command.Split(' ');
-                try {
+                try
+                {
                     switch (parts[0].ToLower())
                     {
                         case "list":
@@ -103,8 +121,8 @@ namespace KodeRunner.Terminal
                         default:
                             commandsWriteLine("Unknown command. Type 'help' for available commands.");
                             break;
+                    }
                 }
-                } 
                 catch (Exception ex)
                 {
                     Logger.Log($"Error while processing command {parts[0]}: {ex.Message}", "error");
@@ -131,18 +149,23 @@ namespace KodeRunner.Terminal
             foreach (var conn in connections)
             {
                 commandsWriteLine(
-                    $"{conn.Id, -22} {conn.Type, -8} {conn.ConnectedAt:yyyy-MM-dd HH:mm:ss} {conn.ClientInfo}"
+                    $"{conn.Id,-22} {conn.Type,-8} {conn.ConnectedAt:yyyy-MM-dd HH:mm:ss} {conn.ClientInfo}"
                 );
             }
             if (advancedterm)
             {
                 commands.WriteChar('\n');
-            } else {Console.Write('\n');}
+            }
+            else { Console.Write('\n'); }
         }
         static async Task<string> ReadString()
         {
-            if (!advancedterm) {
-                return await Console.In.ReadLineAsync();
+            if (!advancedterm)
+            {
+                // Ensure console input is properly initialized
+     
+                string? input = await Console.In.ReadLineAsync();
+                return input ?? string.Empty;  // Handle null case
             }
             return await Task.Run(() =>
             {
@@ -170,7 +193,9 @@ namespace KodeRunner.Terminal
                         {
                             input += "    ";
                             commands.Write("    ");  // Optionally show '*' for each typed character
-                        } else {
+                        }
+                        else
+                        {
                             input += key.KeyChar;
                             commands.WriteChar(key.KeyChar);  // Optionally show '*' for each typed character
                         }
@@ -182,18 +207,18 @@ namespace KodeRunner.Terminal
         static readonly string[] RunnablesHeader = { "Name", "Language", "Priority" };
         static string CreatePaddedString(string[] data, int len)
         {
-            int spacing = (int)Math.Round(len / (float)(data.Length+1));
+            int spacing = (int)Math.Round(len / (float)(data.Length + 1));
             int sub = 0;
             int mul = 1;
             string ret = "";
-            for (int i=0; i<data.Length; i++)
+            for (int i = 0; i < data.Length; i++)
             {
                 var str = data[i];
                 if (i == 2)
-                    ret += new string(Enumerable.Repeat(' ', (spacing*mul)-(str.Length/2)-sub).ToArray());
+                    ret += new string(Enumerable.Repeat(' ', (spacing * mul) - (str.Length / 2) - sub).ToArray());
                 else
-                    ret += new string(Enumerable.Repeat(' ', (spacing*mul)-((str.Length+1)/2)-sub).ToArray());
-                sub = str.Length/2;
+                    ret += new string(Enumerable.Repeat(' ', (spacing * mul) - ((str.Length + 1) / 2) - sub).ToArray());
+                sub = str.Length / 2;
                 mul = 1;
                 ret += str;
             }
@@ -214,10 +239,10 @@ namespace KodeRunner.Terminal
         }
         public static void UpdateRunnables()
         {
-            if (!advancedterm) {return;}
+            if (!advancedterm) { return; }
             runnables.Clear();
             runnables.Write(header);
-            
+
             foreach (var runnable in runnables_list)
             {
                 runnables.WriteLine(CreatePaddedString(
@@ -250,10 +275,11 @@ namespace KodeRunner.Terminal
         {
             connections.Clear();
             connections.Write(connections_header);
-            
+
             foreach (var connection in Program.connectionManager.ListConnections())
             {
-                try {
+                try
+                {
                     connections.WriteLine(CreatePaddedString(
                         new string[] {
                             connection.Id,
@@ -263,7 +289,8 @@ namespace KodeRunner.Terminal
                         },
                         connections.bw
                     ));
-                } catch (Exception ex) {Logger.Log(ex.Message, "Error");}
+                }
+                catch (Exception ex) { Logger.Log(ex.Message, "Error"); }
             }
 
             connections.Update();
