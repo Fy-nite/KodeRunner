@@ -62,7 +62,7 @@ jobs:
     steps:
       - run: apk update
       - name: get system deps
-        run: apk add libicu-dev
+        run: apk add icu-dev
       - uses: actions/checkout@v3
       - uses: https://github.com/actions/setup-dotnet@v4
         with:
