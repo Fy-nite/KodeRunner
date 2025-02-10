@@ -15,17 +15,38 @@ jobs:
         run: dotnet publish .
         working-directory: runner/
       - 
-        name: archive artifact
-        run: tar czvf ../../../../../upload.tar.gz .
+        name: Archive artifact KodeRunner-base
+        run: tar czvf ../../../../../KodeRunner-base.tar.gz .
         working-directory: runner/bin/Release/net8.0/publish/
-      - uses: actions/upload-artifact@v3
+      - name: Upload KodeRunner-base
+        uses: actions/upload-artifact@v3
         with:
-          name: ci-cached-runner
-          path: upload.tar.gz
+          name: KodeRunner-base-linux64.tar.gz
+          path: KodeRunner-base.tar.gz
       - 
         name: build runners
         working-directory: KodeRunnerLibs/
-        run: dotnet publish .
+        run: dotnet publsh .
+      - 
+        name: Archive artifact runners
+        run: tar czvf ../../../../../../runners.tar.gz .
+        working-directory: KodeRunnerLibs/Runnables/bin/Release/net8.0/publish/
+      - name: Upload KodeRunner-base
+        uses: actions/upload-artifact@v3
+        with:
+          name: runners-linux64.tar.gz
+          path: runners.tar.gz
+      - run: mkdir -p runner/bin/Release/net8.0/publish/koderunner/Runnables
+      - run: cp KodeRunnerLibs/Runnables/bin/Release/net8.0/publish/Runnables.dll runner/bin/Release/net8.0/publish/koderunner/Runnables/Runnables.dll
+      - 
+        name: Archive artifact KodeRunner
+        run: tar czvf ../../../../../KodeRunner.tar.gz .
+        working-directory: runner/bin/Release/net8.0/publish/
+      - name: Upload KodeRunner
+        uses: actions/upload-artifact@v3
+        with:
+          name: KodeRunner-linux64.tar.gz
+          path: KodeRunner.tar.gz
 
 
           
