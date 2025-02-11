@@ -83,7 +83,7 @@ public class ModifiedDotnetRunnable : IRunnable
         };
 
         var buildCommand = $"dotnet build \"{settings.ProjectPath}\"";
-        var runCommand = $"dotnet run --project \"{settings.ProjectPath}\"";
+        var runCommand = $"dotnet run --project \"{settings.ProjectPath}\""
 
         terminalProcess.ExecuteCommand(buildCommand).Wait();
 
