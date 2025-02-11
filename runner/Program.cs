@@ -47,9 +47,9 @@ namespace KodeRunner
                     Console.Write("\x1b[?1049h\x1b[?25h");
                 }
             };
-            var config = Configuration.Load();
             // Start the console command processor
             Terminal.Terminal.init();
+            var config = Configuration.Load();
 
             Logger.Log("Starting KodeRunner...");
             EnsureFolders();
