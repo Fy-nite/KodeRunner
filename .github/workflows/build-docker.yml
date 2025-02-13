@@ -25,7 +25,7 @@ jobs:
           file: "KodeRunner-Docker-Alpine/Dockerfile"
           context: "{{defaultContext}}"
           push: true
-          tags: ghcr.io/Fy-nite/KodeRunner:test
+          tags: ghcr.io/fy-nite/koderunner:test
       - name: Cleanup
         run: |
           docker logout
