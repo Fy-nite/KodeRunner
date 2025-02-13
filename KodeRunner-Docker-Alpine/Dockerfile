@@ -16,5 +16,6 @@ COPY --from=build /app.tar.gz /app.tar.gz
 RUN  mkdir /KodeRunner/
 WORKDIR /KodeRunner/
 RUN tar xzvf /app.tar.gz && rm /app.tar.gz
+RUN apk add bash
 RUN ls -l && ./KodeRunner --init 
 CMD ["/KodeRunner/KodeRunner"]
