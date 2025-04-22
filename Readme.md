@@ -28,3 +28,12 @@ Running KodeRunner is simple, just run the following command in the terminal.
 ./KodeRunner
 ```
 
+
+## Default Runnables
+
+The current default runnables that come with a fresh install of KodeRunner are:
+- Python
+- NodeJS
+- C
+- Micro-Assembly
+- Dotnet
