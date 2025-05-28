@@ -141,31 +141,51 @@ namespace KodeRunner
         {
             try
             {
+                Logger.Log($"Attempting to execute runnable for language: {language}");
+                Logger.Log($"Available runnables: {_runnables.Count}");
+                
                 foreach (var runnable in _runnables)
                 {
+                    Logger.Log($"Checking runnable key: {runnable.Key}");
                     if (runnable.Key.StartsWith(language))
                     {
+                        Logger.Log($"Found matching runnable: {runnable.Key}");
+                        if (settings == null)
+                        {
+                            Logger.Log("Settings is null!", "Error");
+                            throw new ArgumentNullException(nameof(settings), "Settings cannot be null");
+                        }
+                        
                         runnable.Value(settings);
                         return;
                     }
                 }
+                
+                Logger.Log($"No direct match found, reloading runnables...");
                 LoadRunnables();
+                
                 // Try one more time after loading runnables
                 foreach (var runnable in _runnables)
                 {
                     if (runnable.Key.StartsWith(language))
                     {
+                        Logger.Log($"Found matching runnable after reload: {runnable.Key}");
                         runnable.Value(settings);
                         return;
                     }
                 }
-                Logger.Log($"No runnable found for language: {language}", "Warning");
+                
+                var errorMessage = $"No runnable found for language: {language}";
+                Logger.Log(errorMessage, "Warning");
+                OnError?.Invoke(errorMessage);
             }
             catch (Exception ex)
             {
-                Logger.Log(
-                    $"Error executing runnable for language {language}: {ex.Message}", "Error"
-                );
+                var errorMessage = $"Error executing runnable for language {language}: {ex.Message}";
+                Logger.Log(errorMessage, "Error");
+                Logger.Log($"Stack trace: {ex.StackTrace}", "Error");
+                OnError?.Invoke(errorMessage);
+                throw; // Re-throw to allow CLI to handle the error properly
             }
         }
 

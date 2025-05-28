@@ -22,7 +22,10 @@ namespace shitters
 
             terminalProcess.OnOutput += async (output) =>
             {
+                // Always output to console for CLI mode
+                Console.Write(output);
                 
+                // Also send to WebSocket if available (WebSocket mode)
                 if (pmsWebSocket != null && pmsWebSocket.State == WebSocketState.Open)
                 {
                     var bytes = Encoding.UTF8.GetBytes(output);

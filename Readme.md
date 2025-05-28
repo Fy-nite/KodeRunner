@@ -1,30 +1,298 @@
 # KodeRunner
 
-Welcome to KodeRunner V3.
-KodeRunner is a interactive VSCode like install inside resonite.
+Welcome to KodeRunner V3 - A WebSocket-based code execution server platform.
 
+KodeRunner is an interactive server that provides VSCode-like functionality for remote clients, specifically designed for integration with platforms like Resonite. It allows users to run 15+ programming languages from any application that supports WebSocket connections.
 
-KodeRunner allows users to run more than 15+ programming Languages from any place that supports Websockets.
+## Features
 
-# Building KodeRunner
+- **Multi-Language Support**: Execute code in 15+ programming languages including Python, C#, JavaScript, C, Java, WebAssembly, and more
+- **WebSocket API**: Real-time communication for interactive development experiences
+- **Sandbox Security**: Secure code execution with configurable resource limits and command filtering
+- **Project Management**: Organize, import, and export projects with metadata
+- **Terminal Interface**: Built-in terminal with command processing and output streaming
+- **Plugin System**: Extensible architecture for adding new language support
+- **CLI Support**: Command-line interface for server management and project execution
 
-To Build KodeRunner, you need to have Dotnet 8 or higher installed on your machine.
+## Supported Languages
 
-you can install Dotnet from [here](https://dotnet.microsoft.com/download)
+- C# (.NET)
+- Python
+- JavaScript (Node.js)
+- C (GCC)
+- Java
+- WebAssembly (WASM)
+- MicroASM (j-masm)
+- And more via the plugin system
 
-just download the installer and it will setup everything for you.
+## Building KodeRunner
 
-After downloading the installer, just open a terminal in the same directory as it, run the program by doing ./Kodeinstaller and run the following command in the prompt.
+To build KodeRunner, you need to have .NET 8 or higher installed on your machine.
+
+You can install .NET from [here](https://dotnet.microsoft.com/download)
+
+### Prerequisites
+- .NET 8 SDK or higher
+- Docker (optional, for enhanced sandboxing)
+- Git
+
+### Build Steps
+1. Clone the repository
+2. Navigate to the project directory
+3. Run the build command:
 
 ```bash
-install
+dotnet build
 ```
 
-# Running KodeRunner
+## Running KodeRunner
 
-Running KodeRunner is simple, just run the following command in the terminal.
+### Server Mode (Default)
+Start the WebSocket server for client connections:
 
 ```bash
-./KodeRunner
+dotnet run
 ```
+
+The server will start on `localhost:5000` by default and provide WebSocket endpoints for:
+- `/code` - Code submission and file management
+- `/PMS` - Project Management System
+- `/stop` - Process termination
+- `/terminput` - Terminal input handling
+
+### CLI Mode
+Execute projects directly from the command line:
+
+```bash
+# Initialize directories
+koderunner init
+
+# Run a project by name (auto-resolves to koderunner/Projects/ProjectName)
+koderunner run TestProject
+
+# Build a project by name
+koderunner build TestProject --language python
+
+# Interactive terminal session with a project
+koderunner terminal TestProject --interactive
+
+# Run with relative path
+koderunner run ./myproject --language python --main app.py
+
+# List available projects
+koderunner list
+
+# Show help
+koderunner help
+```
+
+**Path Resolution**: 
+- **Project name only** (e.g., `TestProject`): Automatically resolves to `koderunner/Projects/TestProject`
+- **Relative path** (e.g., `./myproject`): Relative to current working directory
+- **Absolute path** (e.g., `C:\path\to\project`): Uses the exact path specified
+
+### CLI Examples
+
+```bash
+# Simple project name - easiest method
+koderunner run TestProject
+koderunner build TestProject
+
+# Interactive terminal with project
+koderunner terminal TestProject --interactive
+
+# Relative path from current directory
+koderunner run ./koderunner/Projects/TestProject
+koderunner build ./custom/project/path
+
+# Absolute path
+koderunner run "C:\Users\Me\Projects\MyProject"
+
+# With language and main file specification
+koderunner run TestProject --language python --main app.py
+
+# Build with custom output name
+koderunner build TestProject --language c --output myapp
+
+# Interactive terminal session
+koderunner terminal TestProject --language python --interactive
+
+# Run with custom sandbox policy
+koderunner run TestProject --sandbox trusted
+```
+
+### Interactive Terminal Mode
+
+The `koderunner terminal` command provides an interactive session where you can send input to running processes:
+
+```bash
+# Start interactive terminal session
+koderunner terminal MyPythonProject --interactive
+
+# Once running, you can:
+# - Type commands and press Enter to send input to the process
+# - Type 'exit' to quit the session
+# - Use Ctrl+C to interrupt the running process
+```
+
+### Troubleshooting CLI Issues
+
+Common issues and solutions:
+
+1. **"Project directory not found"**: 
+   - Check the project name is correct: `koderunner list` to see available projects
+   - For relative paths, ensure you're in the correct directory
+   - For absolute paths, verify the full path exists
+
+2. **"Could not detect language"**:
+   - Add appropriate file extensions to your project (`.py`, `.js`, `.c`, etc.)
+   - Use the `--language` parameter to specify explicitly
+
+3. **"Could not detect main file"**:
+   - Ensure your project has a main file with expected name (`main.py`, `index.js`, etc.)
+   - Use the `--main` parameter to specify the filename explicitly
+
+4. **"No active process to send input to"**:
+   - This occurs when trying to send terminal input but no process is running
+   - Start a project with `koderunner terminal <project> --interactive` first
+
+```bash
+# If auto-detection fails, specify everything explicitly
+koderunner run TestProject --language python --main main.py
+
+# For interactive sessions that need input
+koderunner terminal TestProject --language python --main main.py --interactive
+```
+
+## WebSocket Protocol
+
+KodeRunner uses a custom WebSocket protocol for real-time communication:
+
+### Code Execution Endpoint (`/PMS`)
+Send project metadata and receive execution results:
+
+```json
+{
+  "PMS_System": "1.2.0",
+  "Project_Name": "myproject",
+  "Main_File": "main.py",
+  "Project_Build_Systems": "python",
+  "Project_Output": "output",
+  "Run_On_Build": "True"
+}
+```
+
+### Terminal Input Endpoint (`/terminput`)
+Send input to running processes:
+
+```
+Simple text input sent directly to active terminal sessions
+```
+
+## Configuration
+
+KodeRunner uses a JSON configuration file located at `koderunner/Config/config.json`:
+
+```json
+{
+  "ProcessTimeoutSeconds": 30,
+  "LogLevel": "Info",
+  "BufferSize": 8192,
+  "WebServer": {
+    "Host": "localhost",
+    "Port": 5000
+  },
+  "Logging": {
+    "EnableFileLogging": true,
+    "EnableConsoleLogging": true
+  }
+}
+```
+
+## Security
+
+KodeRunner includes a comprehensive sandboxing system:
+
+- **Resource Limits**: CPU, memory, and execution time limits
+- **Command Filtering**: Block dangerous commands and operations
+- **File System Isolation**: Restrict file access to designated directories
+- **Process Monitoring**: Real-time monitoring of executed processes
+
+### Sandbox Policies
+
+- **Default**: Restricted execution (512MB RAM, 30s timeout)
+- **Trusted**: Extended permissions (2GB RAM, 5min timeout)
+- **Custom**: User-defined policies via configuration
+
+## Plugin Development
+
+Extend KodeRunner with custom language support:
+
+```csharp
+[Runnable("mylang", "mylang", 0)]
+public class MyLanguageRunnable : IRunnable
+{
+    public string Name => "mylang";
+    public string Language => "mylang";
+    public int Priority => 0;
+    public string description => "My custom language runner";
+
+    public void Execute(Provider.ISettingsProvider settings)
+    {
+        // Implementation here
+    }
+}
+```
+
+## Client Integration
+
+KodeRunner is designed to be integrated with remote clients:
+
+- **Resonite Integration**: Primary use case for VR/AR development
+- **Web Applications**: JavaScript WebSocket clients
+- **Desktop Applications**: .NET, Python, or other WebSocket-capable clients
+- **Mobile Applications**: Any platform supporting WebSocket connections
+
+## Project Structure
+
+```
+koderunner/
+├── Projects/          # User projects
+├── Builds/           # Build outputs
+├── Logs/             # Server logs
+├── Config/           # Configuration files
+├── Exports/          # Exported projects (.KRproject files)
+├── Temp/             # Temporary execution files
+└── Runnables/        # Plugin assemblies
+```
+
+## Contributing
+
+1. Fork the repository
+2. Create a feature branch
+3. Implement your changes
+4. Add tests if applicable
+5. Submit a pull request
+
+### Development Guidelines
+
+- Follow C# coding conventions
+- Ensure thread safety for multi-client scenarios
+- Add comprehensive error handling
+- Document WebSocket protocol changes
+- Test with multiple concurrent connections
+
+## License
+
+This project is licensed under the MIT License - see the LICENSE file for details.
+
+## Support
+
+- GitHub Issues: Report bugs and feature requests
+- Documentation: See `/docs` for detailed API documentation
+- Community: Join discussions in GitHub Discussions
+
+---
+
+**KodeRunner** - Bringing powerful code execution capabilities to any WebSocket-enabled application.
 

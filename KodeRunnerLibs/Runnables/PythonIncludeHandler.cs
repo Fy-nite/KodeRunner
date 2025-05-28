@@ -37,7 +37,17 @@ namespace KodeRunnerLibs.Runnables
                         }
 
                         copiedFiles.Add(include);
-                        Logger.Log($"Included Python file: {include}", "Info");
+                        
+                        // Log to both console and WebSocket-aware logger
+                        var message = $"Included Python file: {include}";
+                        Console.WriteLine($"[Info] {message}");
+                        Logger.Log(message, "Info");
+                    }
+                    else
+                    {
+                        var errorMessage = $"Include file not found: {include}";
+                        Console.WriteLine($"[Warning] {errorMessage}");
+                        Logger.Log(errorMessage, "Warning");
                     }
                 }
             }

@@ -89,7 +89,7 @@ namespace KodeRunner.Terminal
                 if (string.IsNullOrEmpty(command))
                     continue;
 
-                var parts = command.Split(' ');
+                var parts = command.Split(' ', StringSplitOptions.RemoveEmptyEntries);
                 try
                 {
                     switch (parts[0].ToLower())
@@ -109,14 +109,44 @@ namespace KodeRunner.Terminal
                                 await Program.connectionManager.DisconnectByType(parts[1]);
                             }
                             break;
+                        case "input":
+                            if (parts.Length > 1)
+                            {
+                                var input = string.Join(" ", parts.Skip(1));
+                                bool sent = Program.SendInputToActiveProcess(input);
+                                commandsWriteLine(sent ? "Input sent to active process" : "No active process found");
+                            }
+                            else
+                            {
+                                commandsWriteLine("Usage: input <text to send>");
+                            }
+                            break;
+                        case "stop":
+                            commandsWriteLine("Stopping all processes...");
+                            TerminalProcess.StopAllProcesses();
+                            commandsWriteLine("All processes stopped");
+                            break;
                         case "help":
                             ShowHelp();
                             break;
-                        case "import":
-                            Implementations.Import(parts[1]);
+                        case "metrics":
+                            ShowMetrics(parts);
                             break;
-                        case "export":
-                            Implementations.Export(parts[1]);
+                        case "collab":
+                            HandleCollaboration(parts);
+                            break;
+                        case "sandbox":
+                            HandleSandboxCommand(parts);
+                            break;
+                        case "clear":
+                            if (advancedterm)
+                            {
+                                commands.Clear();
+                            }
+                            else
+                            {
+                                Console.Clear();
+                            }
                             break;
                         default:
                             commandsWriteLine("Unknown command. Type 'help' for available commands.");
@@ -137,7 +167,80 @@ namespace KodeRunner.Terminal
             commandsWriteLine("  disconnecttype <type> - Disconnect all connections of a type");
             commandsWriteLine("  import <project file> - Import a .KRproject file");
             commandsWriteLine("  export <project name> - Export a project into a .KRproject file");
+            commandsWriteLine("  metrics [days]        - Show execution metrics");
+            commandsWriteLine("  collab create <proj>  - Create collaboration session");
+            commandsWriteLine("  sandbox list          - List sandbox policies");
+            commandsWriteLine("  input <text>          - Send input to active terminal process");
+            commandsWriteLine("  stop                  - Stop all active processes");
+            commandsWriteLine("  clear                 - Clear the console");
             commandsWriteLine("  help                  - Show this help message");
+        }
+
+        static void ShowMetrics(string[] parts)
+        {
+            var metricsCollector = new Analytics.MetricsCollector();
+            var days = parts.Length > 1 && int.TryParse(parts[1], out var d) ? d : 7;
+            var since = DateTime.UtcNow.AddDays(-days);
+            var stats = metricsCollector.GetStats(since);
+
+            commandsWriteLine($"\n=== Execution Metrics (Last {days} days) ===");
+            commandsWriteLine($"Total Executions: {stats.TotalExecutions}");
+            commandsWriteLine($"Successful: {stats.SuccessfulExecutions} ({(stats.TotalExecutions > 0 ? stats.SuccessfulExecutions * 100.0 / stats.TotalExecutions : 0):F1}%)");
+            commandsWriteLine($"Average Duration: {stats.AverageExecutionTime.TotalSeconds:F2}s");
+            commandsWriteLine($"Average Memory: {stats.AverageMemoryUsage:F1}MB");
+            
+            if (stats.TopLanguages.Any())
+            {
+                commandsWriteLine("\nTop Languages:");
+                foreach (var lang in stats.TopLanguages)
+                {
+                    commandsWriteLine($"  {lang.Key}: {lang.Value} executions");
+                }
+            }
+        }
+
+        static void HandleCollaboration(string[] parts)
+        {
+            if (parts.Length < 2)
+            {
+                commandsWriteLine("Usage: collab create <project-name>");
+                return;
+            }
+
+            switch (parts[1].ToLower())
+            {
+                case "create":
+                    if (parts.Length > 2)
+                    {
+                        var sessionId = Program.collaborationManager.CreateSession(parts[2], "console");
+                        commandsWriteLine($"Collaboration session created: {sessionId}");
+                    }
+                    break;
+                default:
+                    commandsWriteLine("Unknown collaboration command");
+                    break;
+            }
+        }
+
+        static void HandleSandboxCommand(string[] parts)
+        {
+            if (parts.Length < 2)
+            {
+                commandsWriteLine("Usage: sandbox list");
+                return;
+            }
+
+            switch (parts[1].ToLower())
+            {
+                case "list":
+                    commandsWriteLine("Available sandbox policies:");
+                    commandsWriteLine("  default - Basic restrictions (512MB, 30s, no network)");
+                    commandsWriteLine("  trusted - Extended permissions (2GB, 5min, network allowed)");
+                    break;
+                default:
+                    commandsWriteLine("Unknown sandbox command");
+                    break;
+            }
         }
 
         static void ListConnections()
