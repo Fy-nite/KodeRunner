@@ -1,0 +1,3 @@
+[submodule "SharpMasm"]
+	path = SharpMasm
+	url = https://github.com/fy-nite/SharpMasm
