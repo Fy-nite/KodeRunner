@@ -1,0 +1,26 @@
+# Data section
+data $strfmt = { b "%s\n", b 0 }
+
+data $numfmt = { b "%d\n", b 0 }
+
+
+export function w $main() {
+@start
+    %rax =l copy 0
+    %rbx =l copy 0
+    %rcx =l copy 0
+    %rdx =l copy 0
+    %rsi =l copy 0
+@main
+    %rax =w add %rax, 1
+    call $printf(l $numfmt, w %rax)
+    #; Instruction{operation='cout', Immediate='1', Immediate='10'}
+    %cmp_result =w sub %rax, 9999
+    %cmp_gen_0 =w ceqw %cmp_result, 0
+    jnz %cmp_gen_0, @end, @fallthrough_gen_1
+@fallthrough_gen_1
+    jmp @main
+@end
+ret 0
+   ret #; End of instructions
+}

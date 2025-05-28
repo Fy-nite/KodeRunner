@@ -5,7 +5,7 @@
   "EnableDebugMode": false,
   "WebServer": {
     "Host": "localhost",
-    "Port": 5000,
+    "Port": 5001,
     "MaxConnections": 100
   },
   "Logging": {

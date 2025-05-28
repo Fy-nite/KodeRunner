@@ -9,13 +9,13 @@ using Python.Runtime;
 
 
 
-[Runnable("microasm", "MASM", 0)]
+[Runnable("microasm", "j-masm", 0)]
 public class MicroASMRunnable : IRunnable
 {
     public string Name => "microasm";
     public string Language => "MASM";
     public int Priority => 0;
-    public string description => "Executes MicroASM projects";
+    public string description => "Executes MicroASM projects with jmasm interpreter";
 
     public void Execute(Provider.ISettingsProvider settings)
     {
@@ -31,6 +31,9 @@ public class MicroASMRunnable : IRunnable
             if (pmsWebSocket != null && pmsWebSocket.State == WebSocketState.Open)
             {
                 var bytes = Encoding.UTF8.GetBytes(output);
+                // sleep for a few milis
+                await Task.Delay(50); // Adjust delay as needed
+                // Send the output to the PMS WebSocket
                 await pmsWebSocket.SendAsync(
                     new ArraySegment<byte>(bytes),
                     WebSocketMessageType.Text,
@@ -42,7 +45,7 @@ public class MicroASMRunnable : IRunnable
 
         var codePath = Path.Combine(Core.RootDir, Core.CodeDir, settings.ProjectName);
         var mainFilePath = Path.Combine(codePath, settings.Main_File);
-        var runCommand = $"python3 interp.py \"{mainFilePath}\"";
+        var runCommand = $"jmasm \"{mainFilePath}\"";
         Console.WriteLine(runCommand);
 
         terminalProcess.ExecuteCommand(runCommand).Wait();

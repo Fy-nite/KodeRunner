@@ -1,0 +1,4 @@
+lbl main
+	DB $100 "Hello world!\n"
+	out 1 $100
+	hlt
