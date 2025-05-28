@@ -7,8 +7,7 @@ using System.Threading;
 using KodeRunner;
 using Python.Runtime;
 
-// MicroASM runnable. This is a custom language that is not supported by KodeRunner out of the box.
-// setup a runnable that uses pythonnet to interface with interp.py
+
 
 [Runnable("microasm", "MASM", 0)]
 public class MicroASMRunnable : IRunnable

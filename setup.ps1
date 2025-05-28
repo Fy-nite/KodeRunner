@@ -1,3 +1,4 @@
+echo "Setting up KodeRunner environment..."
 cd runner
 dotnet publish
 cd ../

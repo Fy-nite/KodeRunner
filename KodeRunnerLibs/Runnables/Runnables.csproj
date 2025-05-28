@@ -12,6 +12,9 @@
 	<HintPath>../../runner/bin/Release/net8.0/Publish/KodeRunner.dll</HintPath>
 	<HintPath>../../runner/bin/Release/net8.0/KodeRunner.dll</HintPath>
 </Reference>
+<Reference Include="SharpMASM">
+  <HintPath>../../SharpMASM/bin/Debug/net8.0/SharpMASM.dll</HintPath>
+  <HintPath>../../SharpMASM/bin/Release/net8.0/SharpMASM.dll</HintPath>
 </ItemGroup>
 <ItemGroup>
   <PackageReference Include="PythonNET" Version="3.0.4" />
