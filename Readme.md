@@ -11,8 +11,28 @@ KodeRunner is an interactive server that provides VSCode-like functionality for 
 - **Sandbox Security**: Secure code execution with configurable resource limits and command filtering
 - **Project Management**: Organize, import, and export projects with metadata
 - **Terminal Interface**: Built-in terminal with command processing and output streaming
+- **Shared Terminal Sessions**: Collaborative development with multiple users sharing terminal sessions
 - **Plugin System**: Extensible architecture for adding new language support
 - **CLI Support**: Command-line interface for server management and project execution
+- **Desktop Client**: Enhanced Java Swing client with unified development environment
+
+## Desktop Client Features
+
+The KodeRunner Desktop Tester provides a comprehensive development environment:
+
+### Unified Development Tab
+- **File Browser**: Visual project and file management with tree view
+- **Code Editor**: Syntax-aware editor with auto-save functionality
+- **Integrated PMS**: Build and run controls directly in the editor
+- **Project Settings**: Language detection, build configuration, and output settings
+- **Real-time Output**: Live feedback from build and execution processes
+
+### Additional Tabs
+- **Terminal Input**: Send commands to running processes
+- **Shared Terminal**: Create and join collaborative terminal sessions
+- **Performance Monitor**: Real-time monitoring of connections and system metrics
+- **Connection Monitor**: WebSocket communication debugging
+- **Settings**: Customizable preferences and connection configuration
 
 ## Supported Languages
 
@@ -35,15 +55,21 @@ You can install .NET from [here](https://dotnet.microsoft.com/download)
 - .NET 8 SDK or higher
 - Docker (optional, for enhanced sandboxing)
 - Git
+- Java 17+ (for desktop client)
+- Maven 3.6+ (for desktop client)
 
 ### Build Steps
 1. Clone the repository
 2. Navigate to the project directory
-3. Run the build command:
-
-```bash
-dotnet build
-```
+3. Build the server:
+   ```bash
+   dotnet build
+   ```
+4. Build the desktop client:
+   ```bash
+   cd java
+   mvn clean install
+   ```
 
 ## Running KodeRunner
 
@@ -59,6 +85,23 @@ The server will start on `localhost:5000` by default and provide WebSocket endpo
 - `/PMS` - Project Management System
 - `/stop` - Process termination
 - `/terminput` - Terminal input handling
+- `/terminal/create` - Shared terminal session creation
+- `/terminal/{sessionId}` - Dynamic shared terminal endpoints
+
+### Desktop Client
+Launch the enhanced desktop development environment:
+
+```bash
+cd java
+mvn exec:java
+```
+
+The desktop client provides:
+- Visual project management and file editing
+- Integrated build and run controls
+- Real-time output monitoring
+- Shared terminal session management
+- Performance and connection monitoring
 
 ### CLI Mode
 Execute projects directly from the command line:
@@ -189,6 +232,16 @@ Send input to running processes:
 Simple text input sent directly to active terminal sessions
 ```
 
+### Shared Terminal Creation (`/terminal/create`)
+Create collaborative terminal sessions:
+
+```json
+{
+  "action": "create",
+  "project": "ProjectName"
+}
+```
+
 ## Configuration
 
 KodeRunner uses a JSON configuration file located at `koderunner/Config/config.json`:
@@ -249,6 +302,7 @@ public class MyLanguageRunnable : IRunnable
 KodeRunner is designed to be integrated with remote clients:
 
 - **Resonite Integration**: Primary use case for VR/AR development
+- **Desktop Client**: Full-featured Java Swing development environment
 - **Web Applications**: JavaScript WebSocket clients
 - **Desktop Applications**: .NET, Python, or other WebSocket-capable clients
 - **Mobile Applications**: Any platform supporting WebSocket connections
@@ -263,7 +317,11 @@ koderunner/
 ├── Config/           # Configuration files
 ├── Exports/          # Exported projects (.KRproject files)
 ├── Temp/             # Temporary execution files
-└── Runnables/        # Plugin assemblies
+├── Runnables/        # Plugin assemblies
+└── java/             # Desktop client source
+    ├── src/main/java/   # Java source files
+    ├── pom.xml         # Maven configuration
+    └── README.md       # Client documentation
 ```
 
 ## Contributing
@@ -276,7 +334,8 @@ koderunner/
 
 ### Development Guidelines
 
-- Follow C# coding conventions
+- Follow C# coding conventions for server code
+- Follow Java conventions for desktop client code
 - Ensure thread safety for multi-client scenarios
 - Add comprehensive error handling
 - Document WebSocket protocol changes

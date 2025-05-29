@@ -25,9 +25,9 @@ public class KodeRunnerTester extends JFrame {
     }
     
     private void initializeUI() {
-        setTitle("KodeRunner Desktop Tester v2.0 - Enhanced Language Support");
+        setTitle("KodeRunner Desktop Tester v2.3 - Unified Development Environment");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        setSize(1400, 900); // Slightly larger to accommodate new features
+        setSize(1600, 1000); // Wider for the new layout
         setLocationRelativeTo(null);
         
         // Create main layout
@@ -37,14 +37,16 @@ public class KodeRunnerTester extends JFrame {
         JPanel connectionPanel = createConnectionPanel();
         add(connectionPanel, BorderLayout.NORTH);
         
-        // Create tabbed pane
+        // Create tabbed pane with consolidated tabs
         tabbedPane = new JTabbedPane();
         
-        // Add tabs for different endpoints
-        tabbedPane.addTab("Code Editor", new CodeEditorPanel(this));
-        tabbedPane.addTab("PMS Testing", new PMSTestPanel(this));
+        // Main development environment (consolidates Code Editor, PMS, Project Manager)
+        tabbedPane.addTab("Development", new CodeEditorPanel(this));
+        
+        // Keep essential specialized tabs
         tabbedPane.addTab("Terminal Input", new TerminalInputPanel(this));
-        tabbedPane.addTab("Process Control", new ProcessControlPanel(this));
+        tabbedPane.addTab("Shared Terminal", new SharedTerminalPanel(this));
+        tabbedPane.addTab("Performance Monitor", new PerformanceMonitorPanel(this));
         tabbedPane.addTab("Connection Monitor", new ConnectionMonitorPanel(this));
         tabbedPane.addTab("Settings", new SettingsPanel(this));
         tabbedPane.addTab("About", new AboutPanel());
@@ -52,7 +54,7 @@ public class KodeRunnerTester extends JFrame {
         add(tabbedPane, BorderLayout.CENTER);
         
         // Status bar
-        statusLabel = new JLabel("Ready - Enhanced with multi-language support");
+        statusLabel = new JLabel("Ready - Unified development environment for KodeRunner");
         statusLabel.setBorder(BorderFactory.createEtchedBorder());
         add(statusLabel, BorderLayout.SOUTH);
     }
@@ -150,17 +152,22 @@ public class KodeRunnerTester extends JFrame {
         }
     }
     
-    private void connectToAllEndpoints() {
+    public void connectToAllEndpoints() {
         connectToEndpoint("/code");
         connectToEndpoint("/PMS");
         connectToEndpoint("/terminput");
         connectToEndpoint("/stop");
+        connectToEndpoint("/terminal/create");
+        
+        // Update status to reflect terminal integration
+        updateStatus("Connected to all endpoints - Terminal input integrated in Development tab");
     }
     
-    private void disconnectFromAllEndpoints() {
-        for (String endpoint : connections.keySet()) {
+    public void disconnectFromAllEndpoints() {
+        for (String endpoint : new HashMap<>(connections).keySet()) {
             disconnectFromEndpoint(endpoint);
         }
+        updateStatus("Disconnected from all endpoints");
     }
     
     public void sendToEndpoint(String endpoint, String message) {
@@ -168,6 +175,9 @@ public class KodeRunnerTester extends JFrame {
         if (client != null && client.isOpen()) {
             try {
                 client.send(message);
+                // Log the send operation for debugging
+                System.out.println("[SEND] " + endpoint + ": " + 
+                    (message.length() > 100 ? message.substring(0, 97) + "..." : message));
             } catch (Exception e) {
                 updateStatus("Error sending to " + endpoint + ": " + e.getMessage());
             }
@@ -178,10 +188,24 @@ public class KodeRunnerTester extends JFrame {
     
     private void handleWebSocketOutput(String endpoint, String message) {
         SwingUtilities.invokeLater(() -> {
-            // Forward to appropriate panel
+            // Get the currently selected tab
             Component selectedComponent = tabbedPane.getSelectedComponent();
+            
+            // Only forward to the currently selected tab if it handles output
             if (selectedComponent instanceof OutputHandler) {
                 ((OutputHandler) selectedComponent).handleOutput(endpoint, message);
+            }
+            
+            // Always forward to Connection Monitor and Performance Monitor for logging
+            for (int i = 0; i < tabbedPane.getTabCount(); i++) {
+                Component tabComponent = tabbedPane.getComponentAt(i);
+                String tabTitle = tabbedPane.getTitleAt(i);
+                
+                // Forward to monitoring tabs regardless of selection
+                if (tabComponent instanceof OutputHandler && 
+                    (tabTitle.equals("Connection Monitor") || tabTitle.equals("Performance Monitor"))) {
+                    ((OutputHandler) tabComponent).handleOutput(endpoint, message);
+                }
             }
         });
     }
@@ -196,5 +220,41 @@ public class KodeRunnerTester extends JFrame {
     public boolean isConnectedTo(String endpoint) {
         WebSocketClient client = connections.get(endpoint);
         return client != null && client.isOpen();
+    }
+    
+    public void connectToDynamicEndpoint(String endpoint) {
+        try {
+            String host = hostField.getText();
+            String port = portField.getText();
+            String url = String.format("ws://%s:%s%s", host, port, endpoint);
+            
+            WebSocketClient client = new WebSocketClient(URI.create(url));
+            client.setOutputHandler((ep, msg) -> handleWebSocketOutput(endpoint, msg));
+            client.connect();
+            
+            connections.put(endpoint, client);
+            updateStatus("Connected to dynamic endpoint: " + endpoint);
+            
+        } catch (Exception e) {
+            updateStatus("Failed to connect to " + endpoint + ": " + e.getMessage());
+        }
+    }
+    
+    // Override window closing to cleanup resources
+    @Override
+    protected void processWindowEvent(java.awt.event.WindowEvent e) {
+        if (e.getID() == java.awt.event.WindowEvent.WINDOW_CLOSING) {
+            // Cleanup performance monitor
+            for (int i = 0; i < tabbedPane.getTabCount(); i++) {
+                Component component = tabbedPane.getComponentAt(i);
+                if (component instanceof PerformanceMonitorPanel) {
+                    ((PerformanceMonitorPanel) component).cleanup();
+                }
+            }
+            
+            // Disconnect all connections
+            disconnectFromAllEndpoints();
+        }
+        super.processWindowEvent(e);
     }
 }

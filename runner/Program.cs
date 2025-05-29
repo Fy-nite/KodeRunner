@@ -114,6 +114,26 @@ namespace KodeRunner
                     var wsContext = await context.AcceptWebSocketAsync(null);
                     var connectionId = "";
 
+                    // Check for dynamic endpoints first
+                    if (Terminal.DynamicEndpointGenerator.TryGetEndpointHandler(path, out var dynamicHandler))
+                    {
+                        connectionId = connectionManager.AddConnection(
+                            "shared_terminal",
+                            wsContext.WebSocket
+                        );
+                        await connectionManager.SendToConnection(
+                            connectionId,
+                            $"Connected to shared terminal session"
+                        );
+                        _ = dynamicHandler.Handler(
+                            wsContext.WebSocket,
+                            connectionId,
+                            dynamicHandler.SessionId,
+                            config.BufferSize
+                        );
+                        continue;
+                    }
+
                     switch (path)
                     {
                         case "/code":
@@ -171,6 +191,21 @@ namespace KodeRunner
                                 $"Welcome to KodeRunner Terminal Input Service\nYour connection ID: {connectionId}\n"
                             );
                             _ = HandleTerminalInput(
+                                wsContext.WebSocket,
+                                connectionId,
+                                config.BufferSize
+                            );
+                            break;
+                        case "/terminal/create":
+                            connectionId = connectionManager.AddConnection(
+                                "terminal_creator",
+                                wsContext.WebSocket
+                            );
+                            await connectionManager.SendToConnection(
+                                connectionId,
+                                $"Welcome to KodeRunner Terminal Creator Service\nYour connection ID: {connectionId}\n"
+                            );
+                            _ = HandleTerminalCreatorWebSocket(
                                 wsContext.WebSocket,
                                 connectionId,
                                 config.BufferSize
@@ -675,6 +710,380 @@ namespace KodeRunner
                 );
             }
         }
+        static async Task HandleTerminalCreatorWebSocket(
+            WebSocket webSocket,
+            string connectionId,
+            int bufferSize
+        )
+        {
+            Logger.Log("Terminal creator endpoint connected");
+            try
+            {
+                var buffer = new byte[bufferSize];
+
+                while (webSocket.State == WebSocketState.Open)
+                {
+                    var result = await webSocket.ReceiveAsync(
+                        new ArraySegment<byte>(buffer),
+                        CancellationToken.None
+                    );
+
+                    if (result.MessageType == WebSocketMessageType.Close)
+                    {
+                        await webSocket.CloseAsync(
+                            WebSocketCloseStatus.NormalClosure,
+                            "",
+                            CancellationToken.None
+                        );
+                        connectionManager.RemoveConnection(connectionId);
+                        break;
+                    }
+
+                    if (result.MessageType == WebSocketMessageType.Text)
+                    {
+                        using (var memoryStream = new MemoryStream())
+                        {
+                            await memoryStream.WriteAsync(buffer, 0, result.Count);
+                            _ = memoryStream.Seek(0, SeekOrigin.Begin);
+                            var message = await ReadFromMemoryStream(memoryStream);
+                            Logger.Log($"Terminal creator received: {message}");
+
+                            try
+                            {
+                                var request = JsonConvert.DeserializeObject<Dictionary<string, string>>(message);
+                                if (request != null && request.ContainsKey("action") && request["action"] == "create")
+                                {
+                                    var sessionId = Guid.NewGuid().ToString();
+                                    var endpoint = $"/terminal/{sessionId}";
+                                    
+                                    // Register the dynamic endpoint
+                                    Terminal.DynamicEndpointGenerator.RegisterEndpoint(
+                                        endpoint, 
+                                        new Terminal.DynamicEndpoint 
+                                        { 
+                                            Handler = HandleSharedTerminal, 
+                                            SessionId = sessionId 
+                                        }
+                                    );
+                                    
+                                    // Send the endpoint back to the client
+                                    var response = JsonConvert.SerializeObject(new { 
+                                        success = true, 
+                                        endpoint = endpoint,
+                                        sessionId = sessionId
+                                    });
+                                    
+                                    var responseBytes = Encoding.UTF8.GetBytes(response);
+                                    await webSocket.SendAsync(
+                                        new ArraySegment<byte>(responseBytes),
+                                        WebSocketMessageType.Text,
+                                        true,
+                                        CancellationToken.None
+                                    );
+                                    
+                                    Logger.Log($"Created terminal session: {sessionId} at endpoint {endpoint}");
+                                }
+                            }
+                            catch (Exception ex)
+                            {
+                                Logger.Log($"Error processing terminal creator message: {ex.Message}", "Error");
+                                var errorResponse = JsonConvert.SerializeObject(new { success = false, error = ex.Message });
+                                var errorBytes = Encoding.UTF8.GetBytes(errorResponse);
+                                await webSocket.SendAsync(
+                                    new ArraySegment<byte>(errorBytes),
+                                    WebSocketMessageType.Text,
+                                    true,
+                                    CancellationToken.None
+                                );
+                            }
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Logger.Log($"Terminal creator error: {ex.Message}", "Error");
+                connectionManager.RemoveConnection(connectionId);
+            }
+        }
+
+        public static async Task HandleSharedTerminal(
+            WebSocket webSocket, 
+            string connectionId, 
+            string sessionId, 
+            int bufferSize)
+        {
+            Logger.Log($"Shared terminal connected: {sessionId}");
+            string endpointPath = $"/terminal/{sessionId}";
+            
+            try
+            {
+                // Join the shared terminal session
+                SharedTerminalManager.JoinSession(sessionId, connectionId);
+                
+                var buffer = new byte[bufferSize];
+                
+                // Notify that connection is established
+                var welcomeMessage = JsonConvert.SerializeObject(new {
+                    type = "system",
+                    message = $"Connected to shared terminal session {sessionId}",
+                    sessionId = sessionId,
+                    connectionId = connectionId
+                });
+                
+                var welcomeBytes = Encoding.UTF8.GetBytes(welcomeMessage);
+                await webSocket.SendAsync(
+                    new ArraySegment<byte>(welcomeBytes),
+                    WebSocketMessageType.Text,
+                    true,
+                    CancellationToken.None
+                );
+
+                while (webSocket.State == WebSocketState.Open)
+                {
+                    var result = await webSocket.ReceiveAsync(
+                        new ArraySegment<byte>(buffer),
+                        CancellationToken.None
+                    );
+
+                    if (result.MessageType == WebSocketMessageType.Close)
+                    {
+                        await webSocket.CloseAsync(
+                            WebSocketCloseStatus.NormalClosure,
+                            "",
+                            CancellationToken.None
+                        );
+                        connectionManager.RemoveConnection(connectionId);
+                        break;
+                    }
+
+                    if (result.MessageType == WebSocketMessageType.Text)
+                    {
+                        using (var memoryStream = new MemoryStream())
+                        {
+                            await memoryStream.WriteAsync(buffer, 0, result.Count);
+                            _ = memoryStream.Seek(0, SeekOrigin.Begin);
+                            var message = await ReadFromMemoryStream(memoryStream);
+                            
+                            Logger.Log($"Shared terminal received: {message}");
+                            
+                            try
+                            {
+                                // Try to parse as JSON first
+                                var messageData = JsonConvert.DeserializeObject<Dictionary<string, object>>(message);
+                                
+                                if (messageData != null && messageData.ContainsKey("type"))
+                                {
+                                    var messageType = messageData["type"].ToString();
+                                    
+                                    switch (messageType)
+                                    {
+                                        case "execute_project":
+                                            // Handle project execution request
+                                            if (messageData.ContainsKey("project_data"))
+                                            {
+                                                var projectData = JsonConvert.DeserializeObject<Dictionary<string, string>>(
+                                                    messageData["project_data"].ToString());
+                                                await HandleProjectExecution(sessionId, projectData, webSocket);
+                                            }
+                                            break;
+                                            
+                                        case "input":
+                                            // Send input to active process in the session
+                                            if (messageData.ContainsKey("data"))
+                                            {
+                                                var inputData = messageData["data"].ToString();
+                                                bool sent = SharedTerminalManager.SendInputToSession(sessionId, inputData);
+                                                
+                                                var response = JsonConvert.SerializeObject(new {
+                                                    type = "input_result",
+                                                    success = sent,
+                                                    message = sent ? "Input sent to process" : "No active process in session"
+                                                });
+                                                
+                                                var responseBytes = Encoding.UTF8.GetBytes(response);
+                                                await webSocket.SendAsync(
+                                                    new ArraySegment<byte>(responseBytes),
+                                                    WebSocketMessageType.Text,
+                                                    true,
+                                                    CancellationToken.None
+                                                );
+                                            }
+                                            break;
+                                            
+                                        case "ping":
+                                            // Respond to ping with pong
+                                            var pongResponse = JsonConvert.SerializeObject(new {
+                                                type = "pong",
+                                                timestamp = DateTime.UtcNow,
+                                                sessionId = sessionId
+                                            });
+                                            
+                                            var pongBytes = Encoding.UTF8.GetBytes(pongResponse);
+                                            await webSocket.SendAsync(
+                                                new ArraySegment<byte>(pongBytes),
+                                                WebSocketMessageType.Text,
+                                                true,
+                                                CancellationToken.None
+                                            );
+                                            break;
+                                            
+                                        default:
+                                            // Echo back unknown message types
+                                            var echoResponse = JsonConvert.SerializeObject(new {
+                                                type = "echo",
+                                                original = message,
+                                                timestamp = DateTime.UtcNow,
+                                                sessionId = sessionId
+                                            });
+                                            
+                                            var echoBytes = Encoding.UTF8.GetBytes(echoResponse);
+                                            await webSocket.SendAsync(
+                                                new ArraySegment<byte>(echoBytes),
+                                                WebSocketMessageType.Text,
+                                                true,
+                                                CancellationToken.None
+                                            );
+                                            break;
+                                    }
+                                }
+                                else
+                                {
+                                    // If not JSON or no type, treat as simple text input
+                                    bool sent = SharedTerminalManager.SendInputToSession(sessionId, message);
+                                    
+                                    var response = JsonConvert.SerializeObject(new {
+                                        type = "input_result",
+                                        success = sent,
+                                        message = sent ? "Input sent to process" : "No active process in session",
+                                        input = message
+                                    });
+                                    
+                                    var responseBytes = Encoding.UTF8.GetBytes(response);
+                                    await webSocket.SendAsync(
+                                        new ArraySegment<byte>(responseBytes),
+                                        WebSocketMessageType.Text,
+                                        true,
+                                        CancellationToken.None
+                                    );
+                                }
+                            }
+                            catch (JsonException)
+                            {
+                                // If JSON parsing fails, treat as simple text input
+                                bool sent = SharedTerminalManager.SendInputToSession(sessionId, message);
+                                
+                                var response = JsonConvert.SerializeObject(new {
+                                    type = "input_result",
+                                    success = sent,
+                                    message = sent ? "Input sent to process" : "No active process in session",
+                                    input = message
+                                });
+                                
+                                var responseBytes = Encoding.UTF8.GetBytes(response);
+                                await webSocket.SendAsync(
+                                    new ArraySegment<byte>(responseBytes),
+                                    WebSocketMessageType.Text,
+                                    true,
+                                    CancellationToken.None
+                                );
+                            }
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Logger.Log($"Shared terminal error: {ex.Message}", "Error");
+                connectionManager.RemoveConnection(connectionId);
+            }
+            finally
+            {
+                // Leave the session when connection closes
+                SharedTerminalManager.LeaveSession(sessionId, connectionId);
+                // Decrement connection count when connection closes
+                Terminal.DynamicEndpointGenerator.DecrementConnectionCount(endpointPath);
+            }
+        }
+
+        // Add helper method to handle project execution in shared terminal
+        private static async Task HandleProjectExecution(string sessionId, Dictionary<string, string> projectData, WebSocket webSocket)
+        {
+            try
+            {
+                // Extract project information
+                var projectName = projectData.GetValueOrDefault("Project_Name", "");
+                var mainFile = projectData.GetValueOrDefault("Main_File", "");
+                var buildSystem = projectData.GetValueOrDefault("Project_Build_Systems", "");
+                var output = projectData.GetValueOrDefault("Project_Output", "output");
+                var runOnBuild = projectData.GetValueOrDefault("Run_On_Build", "True") == "True";
+
+                if (string.IsNullOrEmpty(projectName) || string.IsNullOrEmpty(buildSystem))
+                {
+                    await SendErrorToWebSocket(webSocket, "Missing required project information");
+                    return;
+                }
+
+                // Create settings for execution
+                var settings = new Provider.SettingsProvider
+                {
+                    ProjectName = projectName,
+                    Main_File = mainFile,
+                    Language = buildSystem,
+                    Output = output,
+                    Run_On_Build = runOnBuild,
+                    ProjectPath = Path.Combine(Core.RootDir, Core.CodeDir, projectName)
+                };
+
+                // Execute the project in the shared terminal session
+                bool executed = await SharedTerminalManager.ExecuteProjectInSession(sessionId, settings);
+                
+                if (executed)
+                {
+                    var response = JsonConvert.SerializeObject(new {
+                        type = "execution_started",
+                        sessionId = sessionId,
+                        projectName = projectName,
+                        language = buildSystem
+                    });
+                    
+                    var responseBytes = Encoding.UTF8.GetBytes(response);
+                    await webSocket.SendAsync(
+                        new ArraySegment<byte>(responseBytes),
+                        WebSocketMessageType.Text,
+                        true,
+                        CancellationToken.None
+                    );
+                }
+                else
+                {
+                    await SendErrorToWebSocket(webSocket, "Failed to execute project in session");
+                }
+            }
+            catch (Exception ex)
+            {
+                Logger.Log($"Error handling project execution: {ex.Message}", "Error");
+                await SendErrorToWebSocket(webSocket, $"Execution error: {ex.Message}");
+            }
+        }
+
+        private static async Task SendErrorToWebSocket(WebSocket webSocket, string errorMessage)
+        {
+            var errorResponse = JsonConvert.SerializeObject(new {
+                type = "error",
+                message = errorMessage,
+                timestamp = DateTime.UtcNow
+            });
+            
+            var errorBytes = Encoding.UTF8.GetBytes(errorResponse);
+            await webSocket.SendAsync(
+                new ArraySegment<byte>(errorBytes),
+                WebSocketMessageType.Text,
+                true,
+                CancellationToken.None
+            );
+        }
+
         public static void EnsureFolders()
         {
             Directory.CreateDirectory(Path.Combine(Core.RootDir, Core.CodeDir));

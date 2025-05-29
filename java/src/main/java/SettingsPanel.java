@@ -3,6 +3,7 @@ import javax.swing.border.TitledBorder;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.io.File;
 
 public class SettingsPanel extends JPanel {
     private KodeRunnerTester parent;
@@ -64,12 +65,23 @@ public class SettingsPanel extends JPanel {
         autoConnectCheckBox = new JCheckBox("Auto-connect on startup");
         connPanel.add(autoConnectCheckBox, connGbc);
         
+        // Add new connection settings
+        connGbc.gridx = 0; connGbc.gridy = 2;
+        connPanel.add(new JLabel("Connection Timeout:"), connGbc);
+        connGbc.gridx = 1; connGbc.fill = GridBagConstraints.HORIZONTAL; connGbc.weightx = 1.0;
+        JSpinner timeoutSpinner = new JSpinner(new SpinnerNumberModel(30, 5, 300, 5));
+        connPanel.add(timeoutSpinner, connGbc);
+        
+        connGbc.gridx = 0; connGbc.gridy = 3; connGbc.fill = GridBagConstraints.NONE; connGbc.weightx = 0;
+        JCheckBox autoReconnectCheckBox = new JCheckBox("Auto-reconnect on disconnect");
+        connPanel.add(autoReconnectCheckBox, connGbc);
+        
         gbc.gridx = 0; gbc.gridy = 1; gbc.gridwidth = 2; gbc.fill = GridBagConstraints.HORIZONTAL;
         mainPanel.add(connPanel, gbc);
         
         // Project settings
         JPanel projPanel = new JPanel(new GridBagLayout());
-        projPanel.setBorder(new TitledBorder("Default Project Settings"));
+        projPanel.setBorder(new TitledBorder("Project Settings"));
         GridBagConstraints projGbc = new GridBagConstraints();
         projGbc.insets = new Insets(3, 3, 3, 3);
         
@@ -79,21 +91,58 @@ public class SettingsPanel extends JPanel {
         defaultProjectField = new JTextField("TestProject", 20);
         projPanel.add(defaultProjectField, projGbc);
         
+        projGbc.gridx = 0; projGbc.gridy = 1; projGbc.fill = GridBagConstraints.NONE; projGbc.weightx = 0;
+        projPanel.add(new JLabel("Projects Directory:"), projGbc);
+        projGbc.gridx = 1; projGbc.fill = GridBagConstraints.HORIZONTAL; projGbc.weightx = 1.0;
+        JTextField projectsDirField = new JTextField("koderunner/Projects", 20);
+        projPanel.add(projectsDirField, projGbc);
+        
+        projGbc.gridx = 0; projGbc.gridy = 2; projGbc.fill = GridBagConstraints.NONE; projGbc.weightx = 0;
+        JCheckBox autoSaveCheckBox = new JCheckBox("Auto-save code changes");
+        projPanel.add(autoSaveCheckBox, projGbc);
+        
         gbc.gridx = 0; gbc.gridy = 2; gbc.gridwidth = 2; gbc.fill = GridBagConstraints.HORIZONTAL;
         mainPanel.add(projPanel, gbc);
+        
+        // Monitoring settings
+        JPanel monitorPanel = new JPanel(new GridBagLayout());
+        monitorPanel.setBorder(new TitledBorder("Monitoring Settings"));
+        GridBagConstraints monGbc = new GridBagConstraints();
+        monGbc.insets = new Insets(3, 3, 3, 3);
+        
+        monGbc.gridx = 0; monGbc.gridy = 0;
+        monitorPanel.add(new JLabel("Performance Update Interval:"), monGbc);
+        monGbc.gridx = 1; monGbc.fill = GridBagConstraints.HORIZONTAL; monGbc.weightx = 1.0;
+        JSpinner perfIntervalSpinner = new JSpinner(new SpinnerNumberModel(2, 1, 60, 1));
+        monitorPanel.add(perfIntervalSpinner, monGbc);
+        monGbc.gridx = 2; monGbc.fill = GridBagConstraints.NONE; monGbc.weightx = 0;
+        monitorPanel.add(new JLabel("seconds"), monGbc);
+        
+        monGbc.gridx = 0; monGbc.gridy = 1; monGbc.gridwidth = 3; monGbc.fill = GridBagConstraints.HORIZONTAL;
+        JCheckBox enableLoggingCheckBox = new JCheckBox("Enable detailed WebSocket logging");
+        monitorPanel.add(enableLoggingCheckBox, monGbc);
+        
+        gbc.gridx = 0; gbc.gridy = 3; gbc.gridwidth = 2; gbc.fill = GridBagConstraints.HORIZONTAL;
+        mainPanel.add(monitorPanel, gbc);
         
         // Buttons
         JPanel buttonPanel = new JPanel(new FlowLayout());
         JButton saveBtn = new JButton("Save Settings");
         JButton resetBtn = new JButton("Reset to Defaults");
+        JButton exportBtn = new JButton("Export Settings");
+        JButton importBtn = new JButton("Import Settings");
         
         saveBtn.addActionListener(e -> saveSettings());
         resetBtn.addActionListener(e -> resetToDefaults());
+        exportBtn.addActionListener(e -> exportSettings());
+        importBtn.addActionListener(e -> importSettings());
         
         buttonPanel.add(saveBtn);
         buttonPanel.add(resetBtn);
+        buttonPanel.add(exportBtn);
+        buttonPanel.add(importBtn);
         
-        gbc.gridx = 0; gbc.gridy = 3; gbc.gridwidth = 2; gbc.fill = GridBagConstraints.HORIZONTAL;
+        gbc.gridx = 0; gbc.gridy = 4; gbc.gridwidth = 2; gbc.fill = GridBagConstraints.HORIZONTAL;
         mainPanel.add(buttonPanel, gbc);
         
         add(mainPanel, BorderLayout.NORTH);
@@ -163,6 +212,24 @@ public class SettingsPanel extends JPanel {
         autoConnectCheckBox.setSelected(false);
         defaultProjectField.setText("TestProject");
         parent.updateStatus("Settings reset to defaults");
+    }
+    
+    private void exportSettings() {
+        JFileChooser fileChooser = new JFileChooser();
+        fileChooser.setSelectedFile(new File("koderunner-settings.json"));
+        if (fileChooser.showSaveDialog(this) == JFileChooser.APPROVE_OPTION) {
+            // Implementation would save current settings to JSON file
+            parent.updateStatus("Settings export functionality not yet implemented");
+        }
+    }
+    
+    private void importSettings() {
+        JFileChooser fileChooser = new JFileChooser();
+        fileChooser.setFileFilter(new javax.swing.filechooser.FileNameExtensionFilter("JSON files (*.json)", "json"));
+        if (fileChooser.showOpenDialog(this) == JFileChooser.APPROVE_OPTION) {
+            // Implementation would load settings from JSON file
+            parent.updateStatus("Settings import functionality not yet implemented");
+        }
     }
     
     public AppConfig getCurrentConfig() {

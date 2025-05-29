@@ -126,6 +126,12 @@ namespace KodeRunner.Terminal
                             TerminalProcess.StopAllProcesses();
                             commandsWriteLine("All processes stopped");
                             break;
+                        case "endpoints":
+                            ListDynamicEndpoints();
+                            break;
+                        case "cleanup":
+                            CleanupEndpoints();
+                            break;
                         case "help":
                             ShowHelp();
                             break;
@@ -147,6 +153,9 @@ namespace KodeRunner.Terminal
                             {
                                 Console.Clear();
                             }
+                            break;
+                        case "terminal":
+                            HandleTerminalCommand(parts);
                             break;
                         default:
                             commandsWriteLine("Unknown command. Type 'help' for available commands.");
@@ -172,6 +181,8 @@ namespace KodeRunner.Terminal
             commandsWriteLine("  sandbox list          - List sandbox policies");
             commandsWriteLine("  input <text>          - Send input to active terminal process");
             commandsWriteLine("  stop                  - Stop all active processes");
+            commandsWriteLine("  endpoints             - List dynamic endpoints");
+            commandsWriteLine("  cleanup               - Clean up expired endpoints");
             commandsWriteLine("  clear                 - Clear the console");
             commandsWriteLine("  help                  - Show this help message");
         }
@@ -397,6 +408,122 @@ namespace KodeRunner.Terminal
             }
 
             connections.Update();
+        }
+        static void HandleTerminalCommand(string[] parts)
+        {
+            if (parts.Length < 2)
+            {
+                commandsWriteLine("Usage: terminal <create|list|close> [args]");
+                return;
+            }
+
+            switch (parts[1].ToLower())
+            {
+                case "create":
+                    if (parts.Length > 2)
+                    {
+                        var projectName = parts[2];
+                        var endpoint = DynamicEndpointGenerator.CreateSharedTerminalEndpoint(
+                            projectName, "console");
+                        if (endpoint != null)
+                        {
+                            commandsWriteLine($"Created shared terminal: {endpoint}");
+                        }
+                        else
+                        {
+                            commandsWriteLine($"Failed to create shared terminal for {projectName}");
+                        }
+                    }
+                    else
+                    {
+                        commandsWriteLine("Usage: terminal create <project-name>");
+                    }
+                    break;
+                    
+                case "list":
+                    var sessions = SharedTerminalManager.GetActiveSessionDetails();
+                    var endpoints = DynamicEndpointGenerator.GetActiveEndpoints();
+                    
+                    commandsWriteLine("\nActive Terminal Sessions:");
+                    if (sessions.Any())
+                    {
+                        foreach (var session in sessions)
+                        {
+                            commandsWriteLine($"  {session}");
+                        }
+                    }
+                    else
+                    {
+                        commandsWriteLine("  No active terminal sessions");
+                    }
+                    
+                    commandsWriteLine("\nActive Endpoints:");
+                    if (endpoints.Any())
+                    {
+                        foreach (var endpoint in endpoints)
+                        {
+                            commandsWriteLine($"  {endpoint}");
+                        }
+                    }
+                    else
+                    {
+                        commandsWriteLine("  No active endpoints");
+                    }
+                    
+                    // Show statistics
+                    var stats = SharedTerminalManager.GetStatistics();
+                    commandsWriteLine($"\nStatistics: {stats.ActiveSessions}/{stats.TotalSessions} active sessions, {stats.TotalConnections} total connections");
+                    break;
+                    
+                case "close":
+                    if (parts.Length > 2)
+                    {
+                        var sessionId = parts[2];
+                        SharedTerminalManager.CloseSession(sessionId);
+                        commandsWriteLine($"Closed terminal session: {sessionId}");
+                    }
+                    else
+                    {
+                        commandsWriteLine("Usage: terminal close <session-id>");
+                    }
+                    break;
+                    
+                default:
+                    commandsWriteLine("Unknown terminal command. Use: create, list, close");
+                    break;
+            }
+        }
+        static void ListDynamicEndpoints()
+        {
+            var endpoints = DynamicEndpointGenerator.GetAllEndpoints();
+            var stats = DynamicEndpointGenerator.GetStatistics();
+            
+            commandsWriteLine($"\nDynamic Endpoints ({stats.TotalEndpoints} total, {stats.ActiveEndpoints} active):");
+            commandsWriteLine("Path                   Session ID           Connections  Created");
+            commandsWriteLine("---------------------- -------------------- ------------ --------");
+            
+            foreach (var endpoint in endpoints)
+            {
+                var age = DateTime.UtcNow - endpoint.Value.CreatedAt;
+                var ageStr = age.TotalMinutes < 60 
+                    ? $"{age.TotalMinutes:F0}m ago"
+                    : $"{age.TotalHours:F1}h ago";
+                    
+                commandsWriteLine($"{endpoint.Key,-22} {endpoint.Value.SessionId,-20} {endpoint.Value.ConnectionCount,-12} {ageStr}");
+            }
+            
+            if (endpoints.Count == 0)
+            {
+                commandsWriteLine("  No dynamic endpoints registered");
+            }
+            
+            commandsWriteLine($"\nTotal connections across all endpoints: {stats.TotalConnections}");
+        }
+        
+        static void CleanupEndpoints()
+        {
+            var cleanedUp = DynamicEndpointGenerator.CleanupExpiredEndpoints(TimeSpan.FromHours(1));
+            commandsWriteLine($"Cleaned up {cleanedUp} expired endpoints");
         }
     }
 }

@@ -6,7 +6,7 @@
     
     <groupId>com.koderunner</groupId>
     <artifactId>desktop-tester</artifactId>
-    <version>1.0.0</version>
+    <version>2.3.0</version>
     
     <properties>
         <maven.compiler.source>17</maven.compiler.source>
@@ -29,11 +29,18 @@
             <version>2.10.1</version>
         </dependency>
         
-        <!-- Syntax highlighting (optional) -->
+        <!-- Syntax highlighting -->
         <dependency>
             <groupId>com.fifesoft</groupId>
             <artifactId>rsyntaxtextarea</artifactId>
             <version>3.3.4</version>
+        </dependency>
+        
+        <!-- Additional language support for syntax highlighting -->
+        <dependency>
+            <groupId>com.fifesoft</groupId>
+            <artifactId>languagesupport</artifactId>
+            <version>3.3.0</version>
         </dependency>
     </dependencies>
     

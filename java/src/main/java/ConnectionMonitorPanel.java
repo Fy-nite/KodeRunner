@@ -1,14 +1,25 @@
 import javax.swing.*;
 import javax.swing.border.TitledBorder;
 import java.awt.*;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class ConnectionMonitorPanel extends JPanel implements OutputHandler {
     private KodeRunnerTester parent;
     private JTextArea logArea;
-    private JButton clearBtn;
+    private JCheckBox autoScrollCheckBox;
+    private JButton clearLogBtn;
+    private JButton connectAllBtn;
+    private JButton disconnectAllBtn;
+    private SimpleDateFormat timeFormat;
+    private ConcurrentHashMap<String, Long> lastMessageTime;
+    private static final long DUPLICATE_THRESHOLD_MS = 100; // Prevent duplicates within 100ms
     
     public ConnectionMonitorPanel(KodeRunnerTester parent) {
         this.parent = parent;
+        this.timeFormat = new SimpleDateFormat("HH:mm:ss.SSS");
+        this.lastMessageTime = new ConcurrentHashMap<>();
         initializeUI();
         setupEventHandlers();
     }
@@ -16,53 +27,80 @@ public class ConnectionMonitorPanel extends JPanel implements OutputHandler {
     private void initializeUI() {
         setLayout(new BorderLayout());
         
-        // Create toolbar
-        JPanel toolbar = new JPanel(new FlowLayout());
-        clearBtn = new JButton("Clear Log");
-        JButton refreshBtn = new JButton("Refresh Status");
+        // Control panel
+        JPanel controlPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        controlPanel.setBorder(new TitledBorder("Connection Control"));
         
-        toolbar.add(clearBtn);
-        toolbar.add(refreshBtn);
+        connectAllBtn = new JButton("Connect All");
+        disconnectAllBtn = new JButton("Disconnect All");
+        clearLogBtn = new JButton("Clear Log");
+        autoScrollCheckBox = new JCheckBox("Auto-scroll", true);
         
-        add(toolbar, BorderLayout.NORTH);
+        controlPanel.add(connectAllBtn);
+        controlPanel.add(disconnectAllBtn);
+        controlPanel.add(clearLogBtn);
+        controlPanel.add(autoScrollCheckBox);
         
-        // Create log area
+        add(controlPanel, BorderLayout.NORTH);
+        
+        // Log area
         logArea = new JTextArea();
         logArea.setEditable(false);
         logArea.setFont(new Font(Font.MONOSPACED, Font.PLAIN, 11));
-        JScrollPane logScroll = new JScrollPane(logArea);
-        logScroll.setBorder(new TitledBorder("Connection Log"));
+        logArea.setBackground(new Color(30, 30, 30));
+        logArea.setForeground(Color.CYAN);
         
-        add(logScroll, BorderLayout.CENTER);
+        JScrollPane scrollPane = new JScrollPane(logArea);
+        scrollPane.setBorder(new TitledBorder("Connection Log"));
+        add(scrollPane, BorderLayout.CENTER);
         
-        // Add initial content
-        logArea.setText("Connection Monitor\n" +
-                       "=================\n" +
-                       "This panel shows all WebSocket communication.\n\n");
-        
-        refreshBtn.addActionListener(e -> showConnectionStatus());
+        // Initial message
+        appendToLog("Connection Monitor initialized. Waiting for WebSocket activity...");
     }
     
     private void setupEventHandlers() {
-        clearBtn.addActionListener(e -> logArea.setText(""));
+        connectAllBtn.addActionListener(e -> parent.connectToAllEndpoints());
+        disconnectAllBtn.addActionListener(e -> parent.disconnectFromAllEndpoints());
+        clearLogBtn.addActionListener(e -> {
+            logArea.setText("");
+            lastMessageTime.clear();
+            appendToLog("Log cleared at " + timeFormat.format(new Date()));
+        });
     }
     
-    private void showConnectionStatus() {
-        logArea.append("\n=== Connection Status ===\n");
-        String[] endpoints = {"/code", "/PMS", "/terminput", "/stop"};
+    private void appendToLog(String message) {
+        SwingUtilities.invokeLater(() -> {
+            String timestamp = timeFormat.format(new Date());
+            logArea.append("[" + timestamp + "] " + message + "\n");
+            
+            if (autoScrollCheckBox.isSelected()) {
+                logArea.setCaretPosition(logArea.getDocument().getLength());
+            }
+        });
+    }
+    
+    private boolean isDuplicateMessage(String endpoint, String message) {
+        String key = endpoint + ":" + message.hashCode();
+        long currentTime = System.currentTimeMillis();
+        Long lastTime = lastMessageTime.get(key);
         
-        for (String endpoint : endpoints) {
-            boolean connected = parent.isConnectedTo(endpoint);
-            logArea.append(String.format("%-12s: %s\n", endpoint, connected ? "CONNECTED" : "DISCONNECTED"));
+        if (lastTime != null && (currentTime - lastTime) < DUPLICATE_THRESHOLD_MS) {
+            return true;
         }
-        logArea.append("========================\n\n");
-        logArea.setCaretPosition(logArea.getDocument().getLength());
+        
+        lastMessageTime.put(key, currentTime);
+        return false;
     }
     
     @Override
     public void handleOutput(String endpoint, String message) {
-        String timestamp = java.time.LocalTime.now().toString();
-        logArea.append(String.format("[%s] %s: %s\n", timestamp, endpoint, message));
-        logArea.setCaretPosition(logArea.getDocument().getLength());
+        // Prevent duplicate logging
+        if (isDuplicateMessage(endpoint, message)) {
+            return;
+        }
+        
+        String logMessage = String.format("RECV [%s]: %s", endpoint, 
+            message.length() > 200 ? message.substring(0, 197) + "..." : message);
+        appendToLog(logMessage);
     }
 }

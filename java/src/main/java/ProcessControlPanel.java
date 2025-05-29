@@ -31,8 +31,15 @@ public class ProcessControlPanel extends JPanel implements OutputHandler {
         stopBtn.setBackground(Color.RED);
         stopBtn.setForeground(Color.WHITE);
         
+        // Add terminal creator connection button
+        JButton terminalCreatorBtn = new JButton("Connect to Terminal Creator");
+        terminalCreatorBtn.setBackground(new Color(255, 152, 0));
+        terminalCreatorBtn.setForeground(Color.WHITE);
+        terminalCreatorBtn.addActionListener(e -> parent.connectToEndpoint("/terminal/create"));
+        
         controlPanel.add(connectBtn);
         controlPanel.add(stopBtn);
+        controlPanel.add(terminalCreatorBtn);
         
         add(controlPanel, BorderLayout.NORTH);
         
@@ -51,7 +58,8 @@ public class ProcessControlPanel extends JPanel implements OutputHandler {
         outputArea.setText("Process Control Panel\n" +
                           "====================\n" +
                           "Use this panel to stop running processes in KodeRunner.\n" +
-                          "This is useful when processes hang or need to be terminated.\n\n");
+                          "This is useful when processes hang or need to be terminated.\n" +
+                          "Also supports connection to terminal creator for shared sessions.\n\n");
     }
     
     private void setupEventHandlers() {
@@ -78,8 +86,12 @@ public class ProcessControlPanel extends JPanel implements OutputHandler {
     
     @Override
     public void handleOutput(String endpoint, String message) {
+        // Only handle messages from stop endpoint or terminal creator
         if ("/stop".equals(endpoint)) {
             outputArea.append("[STOP] " + message + "\n");
+            outputArea.setCaretPosition(outputArea.getDocument().getLength());
+        } else if ("/terminal/create".equals(endpoint)) {
+            outputArea.append("[TERMINAL-CREATE] " + message + "\n");
             outputArea.setCaretPosition(outputArea.getDocument().getLength());
         }
     }

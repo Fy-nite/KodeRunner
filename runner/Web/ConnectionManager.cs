@@ -106,5 +106,38 @@ namespace KodeRunner
                 );
             }
         }
+
+        public async Task BroadcastToType(string type, string message)
+        {
+            var connections = _connections.Values.Where(c => c.Type == type);
+            var bytes = Encoding.UTF8.GetBytes(message);
+
+            var tasks = connections.Select(async connection =>
+            {
+                if (connection.Socket.State == WebSocketState.Open)
+                {
+                    try
+                    {
+                        await connection.Socket.SendAsync(
+                            new ArraySegment<byte>(bytes),
+                            WebSocketMessageType.Text,
+                            true,
+                            CancellationToken.None
+                        );
+                    }
+                    catch (Exception ex)
+                    {
+                        Logger.Log($"Error broadcasting to {connection.Id}: {ex.Message}", "Error");
+                    }
+                }
+            });
+
+            await Task.WhenAll(tasks);
+        }
+
+        public IEnumerable<WebSocketConnection> GetConnectionsByType(string type)
+        {
+            return _connections.Values.Where(c => c.Type == type);
+        }
     }
 }

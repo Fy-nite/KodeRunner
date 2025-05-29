@@ -57,12 +57,16 @@ public class AboutPanel extends JPanel {
             "Features:\n" +
             "• Code execution testing across multiple programming languages\n" +
             "• Real-time terminal interaction via WebSocket connections\n" +
+            "• Shared terminal sessions for collaborative development\n" +
+            "• Dynamic endpoint creation and management\n" +
             "• Process management and monitoring\n" +
             "• Customizable user interface with multiple Look & Feel options\n" +
             "• Configuration management for persistent settings\n" +
-            "• Multi-endpoint connection monitoring\n\n" +
+            "• Multi-endpoint connection monitoring\n" +
+            "• Interactive terminal input with JSON message support\n\n" +
             "This application allows developers to test and interact with KodeRunner services\n" +
-            "in a user-friendly desktop environment."
+            "in a user-friendly desktop environment, including the new shared terminal\n" +
+            "functionality for collaborative code execution and debugging."
         );
         descArea.setLineWrap(true);
         descArea.setWrapStyleWord(true);

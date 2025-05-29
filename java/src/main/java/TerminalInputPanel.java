@@ -93,8 +93,9 @@ public class TerminalInputPanel extends JPanel implements OutputHandler {
     
     @Override
     public void handleOutput(String endpoint, String message) {
+        // Only handle messages from terminput endpoint
         if ("/terminput".equals(endpoint)) {
-            outputArea.append("[TERMINAL] " + message + "\n");
+            outputArea.append("[TERMINPUT] " + message + "\n");
             outputArea.setCaretPosition(outputArea.getDocument().getLength());
         }
     }
