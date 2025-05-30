@@ -1809,7 +1809,7 @@ Examples:
             sb.AppendLine("  /system/projects - Project information");
             sb.AppendLine("  /system/endpoints - Endpoint status");
             sb.AppendLine("  /system/performance - Performance metrics");
-            sb.AppendLine("  /system/sessions - Session information");
+            sb.AppendLine("  /system/sessions - Terminal session information");
             sb.AppendLine("  /system/languages - Language support");
             sb.AppendLine("  /system/uptime - Server uptime");
             sb.AppendLine("  /system/storage - Storage usage");
@@ -1860,7 +1860,7 @@ Examples:
                 EnsureFolders();
                 
                 // Initialize terminal system for CLI mode (simplified)
-                Terminal.Terminal.advancedterm = false; // Disable advanced terminal features in CLI
+                FastTerminal.InitializeSimpleMode();
                 
                 // Initialize runnable manager for CLI operations
                 runnableManager.LoadRunnables();
