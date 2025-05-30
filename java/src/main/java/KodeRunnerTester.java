@@ -25,43 +25,46 @@ public class KodeRunnerTester extends JFrame {
     }
     
     private void initializeUI() {
-        setTitle("KodeRunner Desktop Tester v2.3 - Unified Development Environment");
+        setTitle("KodeRunner Desktop Tester v2.4 - Hierarchical API Interface");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        setSize(1600, 1000); // Wider for the new layout
+        setSize(1600, 1000);
         setLocationRelativeTo(null);
         
         // Create main layout
         setLayout(new BorderLayout());
         
-        // Create connection panel
-        JPanel connectionPanel = createConnectionPanel();
+        // Create connection panel with enhanced endpoint selection
+        JPanel connectionPanel = createEnhancedConnectionPanel();
         add(connectionPanel, BorderLayout.NORTH);
         
-        // Create tabbed pane with consolidated tabs
+        // Create tabbed pane with updated tabs
         tabbedPane = new JTabbedPane();
         
-        // Main development environment (consolidates Code Editor, PMS, Project Manager)
+        // Add endpoint selector as first tab
+        tabbedPane.addTab("Endpoints", new EndpointSelectorPanel(this));
+        
+        // Main development environment
         tabbedPane.addTab("Development", new CodeEditorPanel(this));
         
-        // Keep essential specialized tabs
-        tabbedPane.addTab("Terminal Input", new TerminalInputPanel(this));
+        // Specialized tabs
+        tabbedPane.addTab("Terminal Control", new TerminalInputPanel(this));
         tabbedPane.addTab("Shared Terminal", new SharedTerminalPanel(this));
-        tabbedPane.addTab("Performance Monitor", new PerformanceMonitorPanel(this));
-        tabbedPane.addTab("Connection Monitor", new ConnectionMonitorPanel(this));
+        tabbedPane.addTab("System Monitor", new PerformanceMonitorPanel(this));
+        tabbedPane.addTab("API Explorer", new ApiExplorerPanel(this));
         tabbedPane.addTab("Settings", new SettingsPanel(this));
         tabbedPane.addTab("About", new AboutPanel());
         
         add(tabbedPane, BorderLayout.CENTER);
         
-        // Status bar
-        statusLabel = new JLabel("Ready - Unified development environment for KodeRunner");
+        // Enhanced status bar
+        statusLabel = new JLabel("Ready - Hierarchical WebSocket API v2.4");
         statusLabel.setBorder(BorderFactory.createEtchedBorder());
         add(statusLabel, BorderLayout.SOUTH);
     }
     
-    private JPanel createConnectionPanel() {
+    private JPanel createEnhancedConnectionPanel() {
         JPanel panel = new JPanel(new FlowLayout(FlowLayout.LEFT));
-        panel.setBorder(new TitledBorder("Connection Settings"));
+        panel.setBorder(new TitledBorder("Server Connection"));
         
         panel.add(new JLabel("Host:"));
         hostField = new JTextField("localhost", 10);
@@ -71,13 +74,35 @@ public class KodeRunnerTester extends JFrame {
         portField = new JTextField("5000", 5);
         panel.add(portField);
         
-        JButton connectAllBtn = new JButton("Connect All");
+        // Quick connect buttons for different endpoint groups
+        JButton connectApiBtn = new JButton("API");
+        JButton connectDevBtn = new JButton("Dev");
+        JButton connectAdminBtn = new JButton("Admin");
+        JButton connectLegacyBtn = new JButton("Legacy");
         JButton disconnectAllBtn = new JButton("Disconnect All");
         
-        panel.add(connectAllBtn);
+        connectApiBtn.setToolTipText("Connect to API endpoints (/api/*)");
+        connectDevBtn.setToolTipText("Connect to development endpoints (/dev/*)");
+        connectAdminBtn.setToolTipText("Connect to admin endpoints (/admin/*)");
+        connectLegacyBtn.setToolTipText("Connect to legacy endpoints for compatibility");
+        
+        panel.add(connectApiBtn);
+        panel.add(connectDevBtn);
+        panel.add(connectAdminBtn);
+        panel.add(connectLegacyBtn);
         panel.add(disconnectAllBtn);
         
-        connectAllBtn.addActionListener(e -> connectToAllEndpoints());
+        // Add connection status indicator
+        JLabel connectionStatus = new JLabel("●");
+        connectionStatus.setForeground(Color.RED);
+        connectionStatus.setToolTipText("Connection Status");
+        panel.add(connectionStatus);
+        
+        // Event handlers for new buttons
+        connectApiBtn.addActionListener(e -> connectToApiEndpoints());
+        connectDevBtn.addActionListener(e -> connectToDevEndpoints());
+        connectAdminBtn.addActionListener(e -> connectToAdminEndpoints());
+        connectLegacyBtn.addActionListener(e -> connectToLegacyEndpoints());
         disconnectAllBtn.addActionListener(e -> disconnectFromAllEndpoints());
         
         return panel;
@@ -153,15 +178,78 @@ public class KodeRunnerTester extends JFrame {
     }
     
     public void connectToAllEndpoints() {
+        // Connect to new hierarchical endpoints
+        connectToEndpoint("/api/execute");      // Enhanced PMS
+        connectToEndpoint("/api/upload");       // Enhanced code upload
+        connectToEndpoint("/api/status");       // Real-time status
+        connectToEndpoint("/dev/syntax");       // Syntax highlighting
+        connectToEndpoint("/terminal/input");   // Terminal input
+        connectToEndpoint("/terminal/create");  // Terminal creation
+        connectToEndpoint("/admin/system");     // System monitoring
+        
+        // Keep legacy endpoints for backward compatibility
+        connectToEndpoint("/code");             // Legacy code upload
+        connectToEndpoint("/PMS");              // Legacy project management
+        connectToEndpoint("/stop");             // Process control
+        
+        updateStatus("Connected to new hierarchical endpoints - Enhanced API structure active");
+    }
+    
+    public void connectToLegacyEndpoints() {
+        // Original endpoint connections for compatibility
         connectToEndpoint("/code");
         connectToEndpoint("/PMS");
         connectToEndpoint("/terminput");
         connectToEndpoint("/stop");
         connectToEndpoint("/terminal/create");
-        connectToEndpoint("/syntax");  // Add syntax highlighting endpoint
+        connectToEndpoint("/syntax");
         
-        // Update status to reflect terminal integration
-        updateStatus("Connected to all endpoints - Terminal input integrated in Development tab");
+        updateStatus("Connected to legacy endpoints - Backward compatibility mode");
+    }
+    
+    public void connectToApiEndpoints() {
+        // API-focused connections
+        connectToEndpoint("/api/execute");
+        connectToEndpoint("/api/build");
+        connectToEndpoint("/api/upload");
+        connectToEndpoint("/api/status");
+        
+        updateStatus("Connected to API endpoints - Production-ready interface");
+    }
+    
+    public void connectToDevEndpoints() {
+        // Development tool connections
+        connectToEndpoint("/dev/syntax");
+        connectToEndpoint("/dev/debug");
+        connectToEndpoint("/dev/logs");
+        connectToEndpoint("/dev/metrics");
+        
+        updateStatus("Connected to development endpoints - Enhanced debugging tools");
+    }
+    
+    public void connectToAdminEndpoints() {
+        // Administrative connections
+        connectToEndpoint("/admin/system");
+        connectToEndpoint("/admin/connections");
+        connectToEndpoint("/admin/processes");
+        
+        updateStatus("Connected to admin endpoints - System management interface");
+    }
+    
+    public void connectToCollabEndpoints() {
+        // Collaboration connections
+        connectToEndpoint("/collab/session");
+        connectToEndpoint("/collab/sync");
+        
+        updateStatus("Connected to collaboration endpoints - Real-time coding collaboration");
+    }
+    
+    public void connectToSandboxEndpoints() {
+        // Sandbox connections
+        connectToEndpoint("/sandbox/execute");
+        connectToEndpoint("/sandbox/monitor");
+        
+        updateStatus("Connected to sandbox endpoints - Secure execution environment");
     }
     
     public void disconnectFromAllEndpoints() {

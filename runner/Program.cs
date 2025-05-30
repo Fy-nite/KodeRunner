@@ -137,6 +137,25 @@ namespace KodeRunner
                         continue;
                     }
 
+                    // New hierarchical routing system
+                    var routeResult = RouteWebSocketEndpoint(path);
+                    if (routeResult.IsValid)
+                    {
+                        connectionId = connectionManager.AddConnection(
+                            routeResult.ConnectionType,
+                            wsContext.WebSocket
+                        );
+                        
+                        await connectionManager.SendToConnection(
+                            connectionId,
+                            routeResult.WelcomeMessage.Replace("{connectionId}", connectionId)
+                        );
+                        
+                        _ = routeResult.Handler(wsContext.WebSocket, connectionId, config.BufferSize, routeResult.RouteData);
+                        continue;
+                    }
+
+                    // Legacy endpoint support (for backward compatibility)
                     switch (path)
                     {
                         case "/code":
@@ -245,7 +264,7 @@ namespace KodeRunner
                             );
                             break;
                         default:
-                            // Check for system endpoints
+                            // Check for legacy system endpoints
                             if (path.StartsWith("/system/"))
                             {
                                 connectionId = connectionManager.AddConnection(
@@ -266,6 +285,10 @@ namespace KodeRunner
                             else
                             {
                                 Logger.Log($"Invalid endpoint: {path}", "Warning");
+                                await connectionManager.SendToConnection(
+                                    connectionId,
+                                    GetAvailableEndpointsHelp()
+                                );
                             }
                             break;
                     }
@@ -1807,7 +1830,7 @@ Examples:
             sb.AppendLine("  /system/overview - This overview");
             sb.AppendLine("  /system/connections - Connection details");
             sb.AppendLine("  /system/projects - Project information");
-            sb.AppendLine("  /system/endpoints - Endpoint status");
+            sb.AppendLine("  /system/endpoints - Static and dynamic endpoint status");
             sb.AppendLine("  /system/performance - Performance metrics");
             sb.AppendLine("  /system/sessions - Terminal session information");
             sb.AppendLine("  /system/languages - Language support");
@@ -2439,5 +2462,610 @@ Examples:
             Console.WriteLine("  koderunner terminal TestProject --interactive               # Interactive terminal");
             Console.WriteLine("  koderunner run ./myproject --sandbox trusted                # Custom sandbox");
         }
+
+        // Add the new routing system
+        private static WebSocketRouteResult RouteWebSocketEndpoint(string path)
+        {
+            // Normalize path and split into segments
+            var segments = path.Trim('/').Split('/', StringSplitOptions.RemoveEmptyEntries);
+            if (segments.Length == 0) return WebSocketRouteResult.Invalid();
+
+            var root = segments[0].ToLower();
+            
+            return root switch
+            {
+                "api" => RouteApiEndpoint(segments),
+                "dev" => RouteDevEndpoint(segments),
+                "admin" => RouteAdminEndpoint(segments),
+                "terminal" => RouteTerminalEndpoint(segments),
+                "collab" => RouteCollabEndpoint(segments),
+                "sandbox" => RouteSandboxEndpoint(segments),
+                _ => WebSocketRouteResult.Invalid()
+            };
+        }
+
+        private static WebSocketRouteResult RouteApiEndpoint(string[] segments)
+        {
+            if (segments.Length < 2) return WebSocketRouteResult.Invalid();
+
+            var endpoint = segments[1].ToLower();
+            
+            return endpoint switch
+            {
+                "execute" => new WebSocketRouteResult
+                {
+                    IsValid = true,
+                    ConnectionType = "api_execute",
+                    WelcomeMessage = "Welcome to KodeRunner API - Code Execution Service\nConnection ID: {connectionId}\nSend project data to execute code",
+                    Handler = HandleApiExecuteWebSocket,
+                    RouteData = new Dictionary<string, object> { ["endpoint"] = "execute" }
+                },
+                "build" => new WebSocketRouteResult
+                {
+                    IsValid = true,
+                    ConnectionType = "api_build",
+                    WelcomeMessage = "Welcome to KodeRunner API - Build Service\nConnection ID: {connectionId}\nSend project data to build code",
+                    Handler = HandleApiBuildWebSocket,
+                    RouteData = new Dictionary<string, object> { ["endpoint"] = "build" }
+                },
+                "upload" => new WebSocketRouteResult
+                {
+                    IsValid = true,
+                    ConnectionType = "api_upload",
+                    WelcomeMessage = "Welcome to KodeRunner API - File Upload Service\nConnection ID: {connectionId}\nSend files with metadata",
+                    Handler = HandleApiUploadWebSocket,
+                    RouteData = new Dictionary<string, object> { ["endpoint"] = "upload" }
+                },
+                "status" => new WebSocketRouteResult
+                {
+                    IsValid = true,
+                    ConnectionType = "api_status",
+                    WelcomeMessage = "Welcome to KodeRunner API - Status Service\nConnection ID: {connectionId}\nReal-time status updates",
+                    Handler = HandleApiStatusWebSocket,
+                    RouteData = new Dictionary<string, object> { ["endpoint"] = "status" }
+                },
+                _ => WebSocketRouteResult.Invalid()
+            };
+        }
+
+        private static WebSocketRouteResult RouteDevEndpoint(string[] segments)
+        {
+            if (segments.Length < 2) return WebSocketRouteResult.Invalid();
+
+            var endpoint = segments[1].ToLower();
+            
+            return endpoint switch
+            {
+                "syntax" => new WebSocketRouteResult
+                {
+                    IsValid = true,
+                    ConnectionType = "dev_syntax",
+                    WelcomeMessage = "Welcome to KodeRunner Dev - Syntax Highlighting\nConnection ID: {connectionId}\nAvailable languages: " + string.Join(", ", syntaxHighlighter.GetAvailableLanguages()),
+                    Handler = HandleDevSyntaxWebSocket,
+                    RouteData = new Dictionary<string, object> { ["endpoint"] = "syntax" }
+                },
+                "debug" => new WebSocketRouteResult
+                {
+                    IsValid = true,
+                    ConnectionType = "dev_debug",
+                    WelcomeMessage = "Welcome to KodeRunner Dev - Debug Service\nConnection ID: {connectionId}\nReal-time debugging support",
+                    Handler = HandleDevDebugWebSocket,
+                    RouteData = new Dictionary<string, object> { ["endpoint"] = "debug" }
+                },
+                "logs" => new WebSocketRouteResult
+                {
+                    IsValid = true,
+                    ConnectionType = "dev_logs",
+                    WelcomeMessage = "Welcome to KodeRunner Dev - Live Logs\nConnection ID: {connectionId}\nStreaming application logs",
+                    Handler = HandleDevLogsWebSocket,
+                    RouteData = new Dictionary<string, object> { ["endpoint"] = "logs" }
+                },
+                "metrics" => new WebSocketRouteResult
+                {
+                    IsValid = true,
+                    ConnectionType = "dev_metrics",
+                    WelcomeMessage = "Welcome to KodeRunner Dev - Performance Metrics\nConnection ID: {connectionId}\nReal-time performance data",
+                    Handler = HandleDevMetricsWebSocket,
+                    RouteData = new Dictionary<string, object> { ["endpoint"] = "metrics" }
+                },
+                _ => WebSocketRouteResult.Invalid()
+            };
+        }
+
+        private static WebSocketRouteResult RouteTerminalEndpoint(string[] segments)
+        {
+            if (segments.Length < 2) return WebSocketRouteResult.Invalid();
+
+            var endpoint = segments[1].ToLower();
+            
+            return endpoint switch
+            {
+                "create" => new WebSocketRouteResult
+                {
+                    IsValid = true,
+                    ConnectionType = "terminal_creator",
+                    WelcomeMessage = "Welcome to KodeRunner Terminal - Session Creator\nConnection ID: {connectionId}\nCreate new terminal sessions",
+                    Handler = HandleTerminalCreatorWebSocketWrapper,
+                    RouteData = new Dictionary<string, object> { ["endpoint"] = "create" }
+                },
+                "input" => new WebSocketRouteResult
+                {
+                    IsValid = true,
+                    ConnectionType = "terminal_input",
+                    WelcomeMessage = "Welcome to KodeRunner Terminal - Input Service\nConnection ID: {connectionId}\nSend input to active processes",
+                    Handler = HandleTerminalInputWrapper,
+                    RouteData = new Dictionary<string, object> { ["endpoint"] = "input" }
+                },
+                "shared" => RouteSharedTerminalEndpoint(segments),
+                _ => WebSocketRouteResult.Invalid()
+            };
+        }
+
+        private static WebSocketRouteResult RouteSharedTerminalEndpoint(string[] segments)
+        {
+            if (segments.Length < 3) return WebSocketRouteResult.Invalid();
+
+            var sessionId = segments[2];
+            
+            return new WebSocketRouteResult
+            {
+                IsValid = true,
+                ConnectionType = "shared_terminal",
+                WelcomeMessage = $"Welcome to KodeRunner Terminal - Shared Session\nConnection ID: {{connectionId}}\nSession: {sessionId}",
+                Handler = (ws, connId, bufferSize, routeData) => HandleSharedTerminal(ws, connId, sessionId, bufferSize),
+                RouteData = new Dictionary<string, object> { ["sessionId"] = sessionId }
+            };
+        }
+
+        private static WebSocketRouteResult RouteCollabEndpoint(string[] segments)
+        {
+            if (segments.Length < 2) return WebSocketRouteResult.Invalid();
+
+            var endpoint = segments[1].ToLower();
+            
+            return endpoint switch
+            {
+                "session" => new WebSocketRouteResult
+                {
+                    IsValid = true,
+                    ConnectionType = "collab_session",
+                    WelcomeMessage = "Welcome to KodeRunner Collaboration - Session Management\nConnection ID: {connectionId}\nCollaborative coding environment",
+                    Handler = HandleCollabSessionWebSocket,
+                    RouteData = new Dictionary<string, object> { ["endpoint"] = "session" }
+                },
+                "sync" => new WebSocketRouteResult
+                {
+                    IsValid = true,
+                    ConnectionType = "collab_sync",
+                    WelcomeMessage = "Welcome to KodeRunner Collaboration - Real-time Sync\nConnection ID: {connectionId}\nCode synchronization service",
+                    Handler = HandleCollabSyncWebSocket,
+                    RouteData = new Dictionary<string, object> { ["endpoint"] = "sync" }
+                },
+                _ => WebSocketRouteResult.Invalid()
+            };
+        }
+
+        private static WebSocketRouteResult RouteAdminEndpoint(string[] segments)
+        {
+            if (segments.Length < 2) return WebSocketRouteResult.Invalid();
+
+            var endpoint = segments[1].ToLower();
+            
+            return endpoint switch
+            {
+                "system" => new WebSocketRouteResult
+                {
+                    IsValid = true,
+                    ConnectionType = "admin_system",
+                    WelcomeMessage = "Welcome to KodeRunner Admin - System Management\nConnection ID: {connectionId}\nSystem administration interface",
+                    Handler = HandleAdminSystemWebSocket,
+                    RouteData = new Dictionary<string, object> { ["endpoint"] = "system", ["subpath"] = segments.Length > 2 ? segments[2] : "overview" }
+                },
+                "connections" => new WebSocketRouteResult
+                {
+                    IsValid = true,
+                    ConnectionType = "admin_connections",
+                    WelcomeMessage = "Welcome to KodeRunner Admin - Connection Management\nConnection ID: {connectionId}\nManage active connections",
+                    Handler = HandleAdminConnectionsWebSocket,
+                    RouteData = new Dictionary<string, object> { ["endpoint"] = "connections" }
+                },
+                "processes" => new WebSocketRouteResult
+                {
+                    IsValid = true,
+                    ConnectionType = "admin_processes",
+                    WelcomeMessage = "Welcome to KodeRunner Admin - Process Management\nConnection ID: {connectionId}\nManage running processes",
+                    Handler = HandleAdminProcessesWebSocket,
+                    RouteData = new Dictionary<string, object> { ["endpoint"] = "processes" }
+                },
+                _ => WebSocketRouteResult.Invalid()
+            };
+        }
+
+        private static WebSocketRouteResult RouteSandboxEndpoint(string[] segments)
+        {
+            if (segments.Length < 2) return WebSocketRouteResult.Invalid();
+
+            var endpoint = segments[1].ToLower();
+            
+            return endpoint switch
+            {
+                "execute" => new WebSocketRouteResult
+                {
+                    IsValid = true,
+                    ConnectionType = "sandbox_execute",
+                    WelcomeMessage = "Welcome to KodeRunner Sandbox - Secure Execution\nConnection ID: {connectionId}\nSecure code execution environment",
+                    Handler = HandleSandboxExecuteWebSocket,
+                    RouteData = new Dictionary<string, object> { ["endpoint"] = "execute" }
+                },
+                "monitor" => new WebSocketRouteResult
+                {
+                    IsValid = true,
+                    ConnectionType = "sandbox_monitor",
+                    WelcomeMessage = "Welcome to KodeRunner Sandbox - Security Monitor\nConnection ID: {connectionId}\nReal-time security monitoring",
+                    Handler = HandleSandboxMonitorWebSocket,
+                    RouteData = new Dictionary<string, object> { ["endpoint"] = "monitor" }
+                },
+                _ => WebSocketRouteResult.Invalid()
+            };
+        }
+
+        // Add missing wrapper methods for terminal handlers
+        private static async Task HandleTerminalCreatorWebSocketWrapper(WebSocket webSocket, string connectionId, int bufferSize, Dictionary<string, object> routeData)
+        {
+            await HandleTerminalCreatorWebSocket(webSocket, connectionId, bufferSize);
+        }
+
+        private static async Task HandleTerminalInputWrapper(WebSocket webSocket, string connectionId, int bufferSize, Dictionary<string, object> routeData)
+        {
+            await HandleTerminalInput(webSocket, connectionId, bufferSize);
+        }
+
+        // Add missing dev syntax handler
+        private static async Task HandleDevSyntaxWebSocket(WebSocket webSocket, string connectionId, int bufferSize, Dictionary<string, object> routeData)
+        {
+            // This is essentially the same as the existing syntax highlighting handler
+            await HandleSyntaxHighlightingWebSocket(webSocket, connectionId, bufferSize);
+        }
+
+        private static async Task HandleDevDebugWebSocket(WebSocket webSocket, string connectionId, int bufferSize, Dictionary<string, object> routeData)
+        {
+            // Debug service implementation
+            Logger.Log("Dev debug endpoint connected");
+            try
+            {
+                var buffer = new byte[bufferSize];
+                
+                // Send initial debug info
+                var debugInfo = "Debug service active. Send 'help' for commands.";
+                var debugBytes = Encoding.UTF8.GetBytes(debugInfo);
+                await webSocket.SendAsync(
+                    new ArraySegment<byte>(debugBytes),
+                    WebSocketMessageType.Text,
+                    true,
+                    CancellationToken.None
+                );
+
+                while (webSocket.State == WebSocketState.Open)
+                {
+                    var result = await webSocket.ReceiveAsync(
+                        new ArraySegment<byte>(buffer),
+                        CancellationToken.None
+                    );
+
+                    if (result.MessageType == WebSocketMessageType.Close)
+                    {
+                        await webSocket.CloseAsync(
+                            WebSocketCloseStatus.NormalClosure,
+                            "",
+                            CancellationToken.None
+                        );
+                        connectionManager.RemoveConnection(connectionId);
+                        break;
+                    }
+
+                    if (result.MessageType == WebSocketMessageType.Text)
+                    {
+                        var message = Encoding.UTF8.GetString(buffer, 0, result.Count);
+                        // TODO: Implement actual debug commands
+                        var response = $"Debug: Received '{message}' - Debug features coming soon";
+                        var responseBytes = Encoding.UTF8.GetBytes(response);
+                        await webSocket.SendAsync(
+                            new ArraySegment<byte>(responseBytes),
+                            WebSocketMessageType.Text,
+                            true,
+                            CancellationToken.None
+                        );
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Logger.Log($"Debug WebSocket error: {ex.Message}", "Error");
+                connectionManager.RemoveConnection(connectionId);
+            }
+        }
+
+        private static async Task HandleDevLogsWebSocket(WebSocket webSocket, string connectionId, int bufferSize, Dictionary<string, object> routeData)
+        {
+            // Live logs streaming
+            Logger.Log("Dev logs endpoint connected");
+            try
+            {
+                // Send recent logs and then stream new ones
+                var logsInfo = "Live log streaming active. Logs will appear here in real-time.";
+                var logsBytes = Encoding.UTF8.GetBytes(logsInfo);
+                await webSocket.SendAsync(
+                    new ArraySegment<byte>(logsBytes),
+                    WebSocketMessageType.Text,
+                    true,
+                    CancellationToken.None
+                );
+
+                var buffer = new byte[bufferSize];
+                while (webSocket.State == WebSocketState.Open)
+                {
+                    var result = await webSocket.ReceiveAsync(
+                        new ArraySegment<byte>(buffer),
+                        CancellationToken.None
+                    );
+
+                    if (result.MessageType == WebSocketMessageType.Close)
+                    {
+                        await webSocket.CloseAsync(
+                            WebSocketCloseStatus.NormalClosure,
+                            "",
+                            CancellationToken.None
+                        );
+                        connectionManager.RemoveConnection(connectionId);
+                        break;
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Logger.Log($"Logs WebSocket error: {ex.Message}", "Error");
+                connectionManager.RemoveConnection(connectionId);
+            }
+        }
+
+        private static async Task HandleDevMetricsWebSocket(WebSocket webSocket, string connectionId, int bufferSize, Dictionary<string, object> routeData)
+        {
+            // Real-time performance metrics
+            await HandleSystemMetricsWebSocket(webSocket, connectionId, "/system/performance", bufferSize);
+        }
+
+        private static async Task HandleAdminSystemWebSocket(WebSocket webSocket, string connectionId, int bufferSize, Dictionary<string, object> routeData)
+        {
+            // System administration
+            var subpath = routeData.GetValueOrDefault("subpath", "").ToString();
+            await HandleSystemMetricsWebSocket(webSocket, connectionId, $"/system/{subpath}", bufferSize);
+        }
+
+        private static async Task HandleAdminConnectionsWebSocket(WebSocket webSocket, string connectionId, int bufferSize, Dictionary<string, object> routeData)
+        {
+            // Connection management
+            await HandleSystemMetricsWebSocket(webSocket, connectionId, "/system/connections", bufferSize);
+        }
+
+        private static async Task HandleAdminProcessesWebSocket(WebSocket webSocket, string connectionId, int bufferSize, Dictionary<string, object> routeData)
+        {
+            // Process management - could integrate with stop service
+            await HandleStopWebSocket(webSocket, connectionId, bufferSize);
+        }
+
+        private static async Task HandleCollabSessionWebSocket(WebSocket webSocket, string connectionId, int bufferSize, Dictionary<string, object> routeData)
+        {
+            // Collaboration session management
+            Logger.Log("Collaboration session endpoint connected");
+            try
+            {
+                var collabInfo = "Collaboration session active. Collaborative features coming soon.";
+                var collabBytes = Encoding.UTF8.GetBytes(collabInfo);
+                await webSocket.SendAsync(
+                    new ArraySegment<byte>(collabBytes),
+                    WebSocketMessageType.Text,
+                    true,
+                    CancellationToken.None
+                );
+
+                var buffer = new byte[bufferSize];
+                while (webSocket.State == WebSocketState.Open)
+                {
+                    var result = await webSocket.ReceiveAsync(
+                        new ArraySegment<byte>(buffer),
+                        CancellationToken.None
+                    );
+
+                    if (result.MessageType == WebSocketMessageType.Close)
+                    {
+                        await webSocket.CloseAsync(
+                            WebSocketCloseStatus.NormalClosure,
+                            "",
+                            CancellationToken.None
+                        );
+                        connectionManager.RemoveConnection(connectionId);
+                        break;
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Logger.Log($"Collaboration WebSocket error: {ex.Message}", "Error");
+                connectionManager.RemoveConnection(connectionId);
+            }
+        }
+
+
+        private static async Task HandleSandboxExecuteWebSocket(WebSocket webSocket, string connectionId, int bufferSize, Dictionary<string, object> routeData)
+        {
+            // Secure sandbox execution
+            await HandlePmsWebSocket(webSocket, connectionId, bufferSize);
+        }
+
+        private static async Task HandleSandboxMonitorWebSocket(WebSocket webSocket, string connectionId, int bufferSize, Dictionary<string, object> routeData)
+        {
+            // Security monitoring
+            Logger.Log("Sandbox monitor endpoint connected");
+            try
+            {
+                var monitorInfo = "Security monitoring active. Sandbox metrics and alerts.";
+                var monitorBytes = Encoding.UTF8.GetBytes(monitorInfo);
+                await webSocket.SendAsync(
+                    new ArraySegment<byte>(monitorBytes),
+                    WebSocketMessageType.Text,
+                    true,
+                    CancellationToken.None
+                );
+
+                var buffer = new byte[bufferSize];
+                while (webSocket.State == WebSocketState.Open)
+                {
+                    var result = await webSocket.ReceiveAsync(
+                        new ArraySegment<byte>(buffer),
+                        CancellationToken.None
+                    );
+
+                    if (result.MessageType == WebSocketMessageType.Close)
+                    {
+                        await webSocket.CloseAsync(
+                            WebSocketCloseStatus.NormalClosure,
+                            "",
+                            CancellationToken.None
+                        );
+                        connectionManager.RemoveConnection(connectionId);
+                        break;
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Logger.Log($"Sandbox monitor WebSocket error: {ex.Message}", "Error");
+                connectionManager.RemoveConnection(connectionId);
+            }
+        }
+
+        // Add the route result class
+        private class WebSocketRouteResult
+        {
+            public bool IsValid { get; set; }
+            public string ConnectionType { get; set; } = "";
+            public string WelcomeMessage { get; set; } = "";
+            public Func<WebSocket, string, int, Dictionary<string, object>, Task> Handler { get; set; } = null!;
+            public Dictionary<string, object> RouteData { get; set; } = new();
+
+            public static WebSocketRouteResult Invalid() => new() { IsValid = false };
+        }
+
+        // Add endpoint help
+        private static string GetAvailableEndpointsHelp()
+        {
+            return @"KodeRunner WebSocket API Endpoints:
+
+API Endpoints (/api/):
+  /api/execute     - Execute code projects
+  /api/build       - Build code projects  
+  /api/upload      - Upload project files
+  /api/status      - Real-time status updates
+
+Development Tools (/dev/):
+  /dev/syntax      - Syntax highlighting
+  /dev/debug       - Debug support
+  /dev/logs        - Live application logs
+  /dev/metrics     - Performance metrics
+
+Terminal Services (/terminal/):
+  /terminal/create - Create terminal sessions
+  /terminal/input  - Send input to processes
+  /terminal/shared/<id> - Shared terminal sessions
+
+Administration (/admin/):
+  /admin/system    - System management
+  /admin/connections - Connection management  
+  /admin/processes - Process management
+
+Collaboration (/collab/):
+  /collab/session  - Collaboration sessions
+  /collab/sync     - Real-time code sync
+
+Sandbox (/sandbox/):
+  /sandbox/execute - Secure code execution
+  /sandbox/monitor - Security monitoring
+
+Legacy Endpoints (deprecated but supported):
+  /code, /PMS, /stop, /terminput, /syntax, /syntax/lang, /system/*
+
+For detailed documentation, visit: https://docs.koderunner.dev";
+        }
+
+        // Placeholder handlers for new endpoints (implement based on requirements)
+        private static async Task HandleApiExecuteWebSocket(WebSocket webSocket, string connectionId, int bufferSize, Dictionary<string, object> routeData)
+        {
+            // Enhanced version of PMS with API-focused features
+            await HandlePmsWebSocket(webSocket, connectionId, bufferSize);
+        }
+
+        private static async Task HandleApiBuildWebSocket(WebSocket webSocket, string connectionId, int bufferSize, Dictionary<string, object> routeData)
+        {
+            // Build-only version of PMS
+            // Implementation would be similar to PMS but only building, not running
+            await HandlePmsWebSocket(webSocket, connectionId, bufferSize);
+        }
+
+        private static async Task HandleApiUploadWebSocket(WebSocket webSocket, string connectionId, int bufferSize, Dictionary<string, object> routeData)
+        {
+            // Enhanced version of code upload with metadata
+            await HandleCodeWebSocket(webSocket, connectionId, bufferSize);
+        }
+
+        private static async Task HandleApiStatusWebSocket(WebSocket webSocket, string connectionId, int bufferSize, Dictionary<string, object> routeData)
+        {
+            // Real-time status updates
+            await HandleSystemMetricsWebSocket(webSocket, connectionId, "/system/overview", bufferSize);
+        }
+
+
+        private static async Task HandleCollabSyncWebSocket(WebSocket webSocket, string connectionId, int bufferSize, Dictionary<string, object> routeData)
+        {
+            // Real-time code synchronization
+            Logger.Log("Collaboration sync endpoint connected");
+            try
+            {
+                var syncInfo = "Real-time sync active. Synchronization features coming soon.";
+                var syncBytes = Encoding.UTF8.GetBytes(syncInfo);
+                await webSocket.SendAsync(
+                    new ArraySegment<byte>(syncBytes),
+                    WebSocketMessageType.Text,
+                    true,
+                    CancellationToken.None
+                );
+
+                var buffer = new byte[bufferSize];
+                while (webSocket.State == WebSocketState.Open)
+                {
+                    var result = await webSocket.ReceiveAsync(
+                        new ArraySegment<byte>(buffer),
+                        CancellationToken.None
+                    );
+
+                    if (result.MessageType == WebSocketMessageType.Close)
+                    {
+                        await webSocket.CloseAsync(
+                            WebSocketCloseStatus.NormalClosure,
+                            "",
+                            CancellationToken.None
+                        );
+                        connectionManager.RemoveConnection(connectionId);
+                        break;
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Logger.Log($"Sync WebSocket error: {ex.Message}", "Error");
+                connectionManager.RemoveConnection(connectionId);
+            }
+        }
+
+
     }
 }

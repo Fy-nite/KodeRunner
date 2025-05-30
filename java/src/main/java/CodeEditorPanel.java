@@ -1057,13 +1057,13 @@ public class CodeEditorPanel extends JPanel implements OutputHandler {
         SwingUtilities.invokeLater(() -> {
             String prefix = switch (endpoint) {
                 case "/code" -> "[CODE] ";
-                case "/PMS" -> "[PMS] ";
+                case "/PMS" -> "";
                 case "/stop" -> "[STOP] ";
                 case "/terminput" -> "[TERMINAL] ";
                 default -> "[" + endpoint + "] ";
             };
             
-            appendToOutput(prefix + message + "\n");
+            appendToOutput(message);
         });
     }
 }
