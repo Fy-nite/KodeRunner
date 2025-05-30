@@ -1,0 +1,32 @@
+{
+  "name": "Python",
+  "fileExtensions": [".py"],
+  "tokenOrder": ["string", "comment", "keyword", "builtin", "number"],
+  "patterns": {
+    "string": {
+      "pattern": "\"([^\"\\\\]|\\\\.)*\"|'([^'\\\\]|\\\\.)*'",
+      "flags": "g",
+      "color": "00FF00"
+    },
+    "comment": {
+      "pattern": "#.*$",
+      "flags": "gm",
+      "color": "808080"
+    },
+    "keyword": {
+      "pattern": "\\b(def|class|if|else|elif|for|while|import|from|return|try|except|with|as|pass|break|continue|lambda|yield|global|nonlocal|assert|del|raise|finally|and|or|not|in|is)\\b",
+      "flags": "g",
+      "color": "FF8C00"
+    },
+    "builtin": {
+      "pattern": "\\b(print|len|range|str|int|float|list|dict|tuple|set|bool|type|isinstance|hasattr|getattr|setattr|delattr|callable|iter|next|enumerate|zip|map|filter|sorted|reversed|sum|min|max|abs|round|pow|divmod|chr|ord|bin|oct|hex|repr|format|open|file|input|eval|exec|compile|globals|locals|vars|dir|help|id|hash|object|super|property|staticmethod|classmethod|slice|memoryview|bytearray|bytes)\\b",
+      "flags": "g",
+      "color": "1E90FF"
+    },
+    "number": {
+      "pattern": "\\b\\d+(\\.\\d+)?\\b",
+      "flags": "g",
+      "color": "FF69B4"
+    }
+  }
+}

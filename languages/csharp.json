@@ -1,0 +1,37 @@
+{
+  "name": "CSharp",
+  "fileExtensions": [".cs"],
+  "patterns": {
+    "keyword": {
+      "pattern": "\\b(using|namespace|class|struct|interface|enum|public|private|protected|internal|static|readonly|const|virtual|override|abstract|sealed|partial|async|await|var|dynamic|new|this|base|null|true|false|if|else|switch|case|default|for|foreach|while|do|break|continue|return|throw|try|catch|finally|lock|checked|unchecked|unsafe|fixed|stackalloc|sizeof|typeof|nameof|is|as|in|out|ref|params|where|select|from|join|group|orderby|let)\\b",
+      "flags": "g",
+      "color": "569CD6"
+    },
+    "type": {
+      "pattern": "\\b(void|bool|byte|sbyte|char|decimal|double|float|int|uint|long|ulong|short|ushort|object|string|DateTime|TimeSpan|Guid|Task|List|Dictionary|Array|IEnumerable|IList|IDictionary)\\b",
+      "flags": "g",
+      "color": "4EC9B0"
+    },
+    "string": {
+      "pattern": "@\"[^\"]*\"|\"[^\"\\\\]*(?:\\\\.[^\"\\\\]*)*\"|'[^'\\\\]*(?:\\\\.[^'\\\\]*)*'",
+      "flags": "g",
+      "color": "D69D85"
+    },
+    "comment": {
+      "pattern": "//.*$|/\\*[\\s\\S]*?\\*/",
+      "flags": "gm",
+      "color": "6A9955"
+    },
+    "number": {
+      "pattern": "\\b\\d+(?:\\.\\d+)?(?:[fFdDmM])?(?:[eE][+-]?\\d+)?\\b",
+      "flags": "g",
+      "color": "B5CEA8"
+    },
+    "attribute": {
+      "pattern": "\\[[^\\]]*\\]",
+      "flags": "g",
+      "color": "92C5F7"
+    }
+  },
+  "tokenOrder": ["comment", "string", "attribute", "keyword", "type", "number"]
+}

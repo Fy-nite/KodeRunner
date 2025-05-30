@@ -56,17 +56,19 @@ public class MicroASMRunnable : IRunnable
     }
 }
 
+// dotnet runnable with metadata
 [Runnable("dotnet", "csharp", 1)]
-public class ModifiedDotnetRunnable : IRunnable
+public class DotNetRunnable : IRunnable
 {
     public string Name => "dotnet";
     public string Language => "csharp";
     public int Priority => 1;
-    public string description => "Executes dotnet projects with metadata";
+    public string description => "Executes .NET projects with metadata";
 
     public void Execute(Provider.ISettingsProvider settings)
     {
-        Console.WriteLine($"Running dotnet project: {settings.ProjectName}");
+        Console.WriteLine("Running .NET project with metadata");
+        Console.WriteLine($"Project Name: {settings.ProjectName}");
         Console.WriteLine($"Project Path: {settings.ProjectPath}");
 
         var terminalProcess = new TerminalProcess();
@@ -92,18 +94,205 @@ public class ModifiedDotnetRunnable : IRunnable
             }
         };
 
-        var buildCommand = $"dotnet build \"{settings.ProjectPath}\"";
-        var runCommand = $"dotnet run --project \"{settings.ProjectPath}\"";
-
-        terminalProcess.ExecuteCommand(buildCommand).Wait();
-
-        if (settings.Run_On_Build)
+        var codePath = Path.Combine(Core.RootDir, Core.CodeDir, settings.ProjectName);
+        var mainFilePath = Path.Combine(codePath, settings.Main_File);
+        string runCommand;
+        if (mainFilePath.EndsWith(".csproj") || mainFilePath.EndsWith(".fsproj") || mainFilePath.EndsWith(".vbproj"))
         {
-            terminalProcess.ExecuteCommand(runCommand).Wait();
+            runCommand = $"dotnet run --project \"{mainFilePath}\"";
         }
+        else
+        {
+            // Look for a project file in the directory
+            var projectFile = Directory.GetFiles(codePath, "*.csproj").FirstOrDefault() 
+                           ?? Directory.GetFiles(codePath, "*.fsproj").FirstOrDefault()
+                           ?? Directory.GetFiles(codePath, "*.vbproj").FirstOrDefault();
+                           
+            if (projectFile != null)
+            {
+                runCommand = $"dotnet run --project \"{projectFile}\"";
+            }
+            else
+            {
+                throw new FileNotFoundException("No .NET project file found in the directory.");
+            }
+        }
+
+        Console.WriteLine(runCommand);
+
+        terminalProcess.ExecuteCommand(runCommand).Wait();
     }
 }
 
+
+//lua runnable with metadata
+[Runnable("lua", "lua", 0)]
+public class LuaRunnable : IRunnable
+{
+    public string Name => "lua";
+    public string Language => "lua";
+    public int Priority => 0;
+    public string description => "Executes lua projects with metadata";
+
+    public void Execute(Provider.ISettingsProvider settings)
+    {
+        Console.WriteLine("Running lua project with metadata");
+        Console.WriteLine($"Project Name: {settings.ProjectName}");
+        Console.WriteLine($"Project Path: {settings.ProjectPath}");
+
+        var terminalProcess = new TerminalProcess();
+
+        // Capture the PMS WebSocket from settings
+        WebSocket pmsWebSocket = settings.PmsWebSocket;
+
+        terminalProcess.OnOutput += async (output) =>
+        {
+            // Always output to console for CLI mode
+            Console.Write(output);
+
+            // Also send to WebSocket if available (WebSocket mode)
+            if (pmsWebSocket != null && pmsWebSocket.State == WebSocketState.Open)
+            {
+                var bytes = Encoding.UTF8.GetBytes(output);
+                await pmsWebSocket.SendAsync(
+                    new ArraySegment<byte>(bytes),
+                    WebSocketMessageType.Text,
+                    true,
+                    CancellationToken.None
+                );
+            }
+        };
+
+        var codePath = Path.Combine(Core.RootDir, Core.CodeDir, settings.ProjectName);
+        var mainFilePath = Path.Combine(codePath, settings.Main_File);
+        var runCommand = $"lua \"{mainFilePath}\"";
+        Console.WriteLine(runCommand);
+
+        terminalProcess.ExecuteCommand(runCommand).Wait();
+    }
+}
+
+// rust runnable with metadata
+[Runnable("rust", "rust", 0)]
+public class RustRunnable : IRunnable
+{
+    public string Name => "rust";
+    public string Language => "rust";
+    public int Priority => 0;
+    public string description => "Executes rust projects with metadata";
+
+    public void Execute(Provider.ISettingsProvider settings)
+    {
+        Console.WriteLine("Running rust project with metadata");
+        Console.WriteLine($"Project Name: {settings.ProjectName}");
+        Console.WriteLine($"Project Path: {settings.ProjectPath}");
+
+        var terminalProcess = new TerminalProcess();
+
+        // Capture the PMS WebSocket from settings
+        WebSocket pmsWebSocket = settings.PmsWebSocket;
+
+        terminalProcess.OnOutput += async (output) =>
+        {
+            // Always output to console for CLI mode
+            Console.Write(output);
+            
+            // Also send to WebSocket if available (WebSocket mode)
+            if (pmsWebSocket != null && pmsWebSocket.State == WebSocketState.Open)
+            {
+                var bytes = Encoding.UTF8.GetBytes(output);
+                await pmsWebSocket.SendAsync(
+                    new ArraySegment<byte>(bytes),
+                    WebSocketMessageType.Text,
+                    true,
+                    CancellationToken.None
+                );
+            }
+        };
+
+        var codePath = Path.Combine(Core.RootDir, Core.CodeDir, settings.ProjectName);
+        var mainFilePath = Path.Combine(codePath, settings.Main_File);
+    string runCommand;
+    if (mainFilePath.EndsWith("Cargo.toml"))
+    {
+        // If the main file is Cargo.toml, run from its directory
+        var cargoDir = Path.GetDirectoryName(mainFilePath);
+        runCommand = $"cd \"{cargoDir}\" ; cargo run";
+    }
+    else
+    {
+        // Look for Cargo.toml in the project directory
+        var cargoFile = Path.Combine(codePath, "Cargo.toml");
+        
+        if (File.Exists(cargoFile))
+        {
+            // Run using cargo if Cargo.toml exists
+            runCommand = $"cd \"{codePath}\" ; cargo run";
+        }
+        else
+        {
+            // Fallback to direct rustc compilation if no Cargo.toml
+            var outputName = Path.GetFileNameWithoutExtension(mainFilePath);
+            var outputPath = Path.Combine(codePath, outputName);
+            runCommand = $"rustc \"{mainFilePath}\" -o \"{outputPath}\" ; \"{outputPath}\"";
+        }
+    }
+        
+        Console.WriteLine(runCommand);
+
+        terminalProcess.ExecuteCommand(runCommand).Wait();
+    }
+}
+
+// java runnable with metadata
+[Runnable("java", "java", 0)]
+public class ModifiedJavaRunnable : IRunnable
+{
+    public string Name => "java";
+    public string Language => "java";
+    public int Priority => 0;
+    public string description => "Executes java projects with metadata";
+
+    public void Execute(Provider.ISettingsProvider settings)
+    {
+        Console.WriteLine("Running java project with metadata");
+        Console.WriteLine($"Project Name: {settings.ProjectName}");
+        Console.WriteLine($"Project Path: {settings.ProjectPath}");
+
+        var terminalProcess = new TerminalProcess();
+
+        // Capture the PMS WebSocket from settings
+        WebSocket pmsWebSocket = settings.PmsWebSocket;
+
+        terminalProcess.OnOutput += async (output) =>
+        {
+            // Always output to console for CLI mode
+            Console.Write(output);
+            
+            // Also send to WebSocket if available (WebSocket mode)
+            if (pmsWebSocket != null && pmsWebSocket.State == WebSocketState.Open)
+            {
+                var bytes = Encoding.UTF8.GetBytes(output);
+                await pmsWebSocket.SendAsync(
+                    new ArraySegment<byte>(bytes),
+                    WebSocketMessageType.Text,
+                    true,
+                    CancellationToken.None
+                );
+            }
+        };
+
+        var codePath = Path.Combine(Core.RootDir, Core.CodeDir, settings.ProjectName);
+        var mainFilePath = Path.Combine(codePath, settings.Main_File);
+        var runCommand = $"java {mainFilePath}";
+
+        Console.WriteLine(runCommand);
+
+        terminalProcess.ExecuteCommand(runCommand).Wait();
+    }
+}
+
+// python runnable with metadata
 [Runnable("python", "python", 0)]
 public class ModifiedPythonRunnable : IRunnable
 {

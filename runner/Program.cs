@@ -39,6 +39,9 @@ namespace KodeRunner
         public static Collaboration.CollaborationManager collaborationManager = new Collaboration.CollaborationManager();
         static Security.SandboxManager sandboxManager = new Security.SandboxManager();
 
+        // Add the syntax highlighting service as a static field
+        static Services.SyntaxHighlightingService syntaxHighlighter = new Services.SyntaxHighlightingService();
+
         /// <summary>
         /// Main entry point for the application.
         /// </summary>
@@ -211,8 +214,59 @@ namespace KodeRunner
                                 config.BufferSize
                             );
                             break;
+                        case "/syntax":
+                            connectionId = connectionManager.AddConnection(
+                                "syntax",
+                                wsContext.WebSocket
+                            );
+                            await connectionManager.SendToConnection(
+                                connectionId,
+                                $"Welcome to KodeRunner Syntax Highlighting Service\nYour connection ID: {connectionId}\nAvailable languages: {string.Join(", ", syntaxHighlighter.GetAvailableLanguages())}"
+                            );
+                            _ = HandleSyntaxHighlightingWebSocket(
+                                wsContext.WebSocket,
+                                connectionId,
+                                config.BufferSize
+                            );
+                            break;
+                        case "/syntax/lang":
+                            connectionId = connectionManager.AddConnection(
+                                "syntax_lang",
+                                wsContext.WebSocket
+                            );
+                            await connectionManager.SendToConnection(
+                                connectionId,
+                                $"Welcome to KodeRunner Syntax Language Configuration Service\nYour connection ID: {connectionId}\nSend file extensions to configure language mappings"
+                            );
+                            _ = HandleSyntaxLanguageConfigWebSocket(
+                                wsContext.WebSocket,
+                                connectionId,
+                                config.BufferSize
+                            );
+                            break;
                         default:
-                            Logger.Log($"Invalid endpoint: {path}", "Warning");
+                            // Check for system endpoints
+                            if (path.StartsWith("/system/"))
+                            {
+                                connectionId = connectionManager.AddConnection(
+                                    "system_metrics",
+                                    wsContext.WebSocket
+                                );
+                                await connectionManager.SendToConnection(
+                                    connectionId,
+                                    $"Welcome to KodeRunner System Metrics Service\nEndpoint: {path}\nYour connection ID: {connectionId}"
+                                );
+                                _ = HandleSystemMetricsWebSocket(
+                                    wsContext.WebSocket,
+                                    connectionId,
+                                    path,
+                                    config.BufferSize
+                                );
+                            }
+                            else
+                            {
+                                Logger.Log($"Invalid endpoint: {path}", "Warning");
+                            }
                             break;
                     }
                 }
@@ -554,10 +608,7 @@ namespace KodeRunner
 
                             File.WriteAllText(file_path, message);
 
-                            // we can now build the project using the IRunnableManager
-                            // we can use the project name to get the project directory, and the main file to build the project
-                            // we can use the build systems to determine how to build the project
-
+                 
                             // look for the matching runnable
                             Provider.ISettingsProvider settings = new Provider.SettingsProvider();
                             settings.Main_File = Main_File;
@@ -1082,6 +1133,713 @@ namespace KodeRunner
                 true,
                 CancellationToken.None
             );
+        }
+
+        static async Task HandleSyntaxHighlightingWebSocket(
+            WebSocket webSocket,
+            string connectionId,
+            int bufferSize
+        )
+        {
+            Logger.Log("Syntax highlighting endpoint connected");
+            try
+            {
+                var buffer = new byte[bufferSize];
+
+                while (webSocket.State == WebSocketState.Open)
+                {
+                    var result = await webSocket.ReceiveAsync(
+                        new ArraySegment<byte>(buffer),
+                        CancellationToken.None
+                    );
+
+                    if (result.MessageType == WebSocketMessageType.Close)
+                    {
+                        await webSocket.CloseAsync(
+                            WebSocketCloseStatus.NormalClosure,
+                            "",
+                            CancellationToken.None
+                        );
+                        connectionManager.RemoveConnection(connectionId);
+                        break;
+                    }
+
+                    if (result.MessageType == WebSocketMessageType.Text)
+                    {
+                        using (var memoryStream = new MemoryStream())
+                        {
+                            await memoryStream.WriteAsync(buffer, 0, result.Count);
+                            _ = memoryStream.Seek(0, SeekOrigin.Begin);
+                            var message = await ReadFromMemoryStream(memoryStream);
+                            
+                            try
+                            {
+                                // Extract language from first line if it starts with "lang:"
+                                string language = "text"; // default language
+                                string code = message;
+                                
+                                var lines = message.Split('\n');
+                                if (lines.Length > 0 && lines[0].StartsWith("lang:", StringComparison.OrdinalIgnoreCase))
+                                {
+                                    language = lines[0].Substring(5).Trim();
+                                    code = string.Join('\n', lines.Skip(1));
+                                }
+                                
+                                // Use the syntax highlighting service
+                                var highlightedCode = syntaxHighlighter.HighlightCode(code, language);
+                                
+                                // Send back plain text response
+                                var responseBytes = Encoding.UTF8.GetBytes((string)highlightedCode);
+                                await webSocket.SendAsync(
+                                    new ArraySegment<byte>(responseBytes),
+                                    WebSocketMessageType.Text,
+                                    true,
+                                    CancellationToken.None
+                                );
+                            }
+                            catch (Exception ex)
+                            {
+                                Logger.Log($"Syntax highlighting error: {ex.Message}", "Error");
+                                var errorMessage = $"Error: {ex.Message}";
+                                var errorBytes = Encoding.UTF8.GetBytes(errorMessage);
+                                await webSocket.SendAsync(
+                                    new ArraySegment<byte>(errorBytes),
+                                    WebSocketMessageType.Text,
+                                    true,
+                                    CancellationToken.None
+                                );
+                            }
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Logger.Log($"Syntax highlighting WebSocket error: {ex.Message}", "Error");
+                connectionManager.RemoveConnection(connectionId);
+            }
+        }
+
+        // New handler for syntax language configuration WebSocket
+        static async Task HandleSyntaxLanguageConfigWebSocket(
+            WebSocket webSocket,
+            string connectionId,
+            int bufferSize
+        )
+        {
+            Logger.Log("Syntax language configuration endpoint connected");
+            try
+            {
+                var buffer = new byte[bufferSize];
+
+                while (webSocket.State == WebSocketState.Open)
+                {
+                    var result = await webSocket.ReceiveAsync(
+                        new ArraySegment<byte>(buffer),
+                        CancellationToken.None
+                    );
+
+                    if (result.MessageType == WebSocketMessageType.Close)
+                    {
+                        await webSocket.CloseAsync(
+                            WebSocketCloseStatus.NormalClosure,
+                            "",
+                            CancellationToken.None
+                        );
+                        connectionManager.RemoveConnection(connectionId);
+                        break;
+                    }
+
+                    if (result.MessageType == WebSocketMessageType.Text)
+                    {
+                        using (var memoryStream = new MemoryStream())
+                        {
+                            await memoryStream.WriteAsync(buffer, 0, result.Count);
+                            _ = memoryStream.Seek(0, SeekOrigin.Begin);
+                            var message = await ReadFromMemoryStream(memoryStream);
+                            
+                            try
+                            {
+                                // Parse the message format: "ext:language" or just "ext" to query
+                                var parts = message.Trim().Split(':');
+                                var extension = parts[0].Trim();
+                                
+                                // Ensure extension starts with dot
+                                if (!extension.StartsWith("."))
+                                {
+                                    extension = "." + extension;
+                                }
+                                
+                                if (parts.Length == 1)
+                                {
+                                    // Query mode - return current language for extension
+                                    var currentLanguage = syntaxHighlighter.DetectLanguage(extension);
+                                    var response = $"Extension {extension} is mapped to language: {currentLanguage}";
+                                    
+                                    var responseBytes = Encoding.UTF8.GetBytes(response);
+                                    await webSocket.SendAsync(
+                                        new ArraySegment<byte>(responseBytes),
+                                        WebSocketMessageType.Text,
+                                        true,
+                                        CancellationToken.None
+                                    );
+                                }
+                                else if (parts.Length == 2)
+                                {
+                                    // Configuration mode - set language for extension
+                                    var language = parts[1].Trim();
+                                    var availableLanguages = syntaxHighlighter.GetAvailableLanguages();
+                                    
+                                    if (availableLanguages.Contains(language.ToLower()) || language.ToLower() == "auto")
+                                    {
+                                        // Update the language mapping
+                                        syntaxHighlighter.SetLanguageMapping(extension, language);
+                                        
+                                        var response = $"Successfully mapped extension {extension} to language: {language}";
+                                        var responseBytes = Encoding.UTF8.GetBytes(response);
+                                        await webSocket.SendAsync(
+                                            new ArraySegment<byte>(responseBytes),
+                                            WebSocketMessageType.Text,
+                                            true,
+                                            CancellationToken.None
+                                        );
+                                    }
+                                    else
+                                    {
+                                        var errorMessage = $"Error: Language '{language}' not available. Available languages: {string.Join(", ", availableLanguages)}";
+                                        var errorBytes = Encoding.UTF8.GetBytes(errorMessage);
+                                        await webSocket.SendAsync(
+                                            new ArraySegment<byte>(errorBytes),
+                                            WebSocketMessageType.Text,
+                                            true,
+                                            CancellationToken.None
+                                        );
+                                    }
+                                }
+                                else
+                                {
+                                    var helpMessage = @"Usage:
+- Query: Send 'ext' or '.ext' to check current language mapping
+- Configure: Send 'ext:language' or '.ext:language' to set mapping
+- Special: Use 'ext:auto' to reset to automatic detection
+Examples:
+  py:python
+  js:nodejs
+  .masm:microasm
+  .asm:auto";
+                                    
+                                    var helpBytes = Encoding.UTF8.GetBytes(helpMessage);
+                                    await webSocket.SendAsync(
+                                        new ArraySegment<byte>(helpBytes),
+                                        WebSocketMessageType.Text,
+                                        true,
+                                        CancellationToken.None
+                                    );
+                                }
+                            }
+                            catch (Exception ex)
+                            {
+                                Logger.Log($"Syntax language config error: {ex.Message}", "Error");
+                                var errorMessage = $"Error: {ex.Message}";
+                                var errorBytes = Encoding.UTF8.GetBytes(errorMessage);
+                                await webSocket.SendAsync(
+                                    new ArraySegment<byte>(errorBytes),
+                                    WebSocketMessageType.Text,
+                                    true,
+                                    CancellationToken.None
+                                );
+                            }
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Logger.Log($"Syntax language config WebSocket error: {ex.Message}", "Error");
+                connectionManager.RemoveConnection(connectionId);
+            }
+        }
+
+        static async Task HandleSystemMetricsWebSocket(
+            WebSocket webSocket,
+            string connectionId,
+            string path,
+            int bufferSize
+        )
+        {
+            Logger.Log($"System metrics endpoint connected: {path}");
+            
+            try
+            {
+                // Send initial metrics based on the endpoint
+                var metricsData = GetSystemMetrics(path);
+                var responseBytes = Encoding.UTF8.GetBytes(metricsData);
+                await webSocket.SendAsync(
+                    new ArraySegment<byte>(responseBytes),
+                    WebSocketMessageType.Text,
+                    true,
+                    CancellationToken.None
+                );
+
+                var buffer = new byte[bufferSize];
+
+                while (webSocket.State == WebSocketState.Open)
+                {
+                    var result = await webSocket.ReceiveAsync(
+                        new ArraySegment<byte>(buffer),
+                        CancellationToken.None
+                    );
+
+                    if (result.MessageType == WebSocketMessageType.Close)
+                    {
+                        await webSocket.CloseAsync(
+                            WebSocketCloseStatus.NormalClosure,
+                            "",
+                            CancellationToken.None
+                        );
+                        connectionManager.RemoveConnection(connectionId);
+                        break;
+                    }
+
+                    if (result.MessageType == WebSocketMessageType.Text)
+                    {
+                        // For system endpoints, any message triggers a metrics refresh
+                        var updatedMetrics = GetSystemMetrics(path);
+                        var updateBytes = Encoding.UTF8.GetBytes(updatedMetrics);
+                        await webSocket.SendAsync(
+                            new ArraySegment<byte>(updateBytes),
+                            WebSocketMessageType.Text,
+                            true,
+                            CancellationToken.None
+                        );
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Logger.Log($"System metrics WebSocket error: {ex.Message}", "Error");
+                connectionManager.RemoveConnection(connectionId);
+            }
+        }
+
+        private static string GetSystemMetrics(string endpoint)
+        {
+            try
+            {
+                switch (endpoint.ToLower())
+                {
+                    case "/system/connections":
+                        return GetConnectionMetrics();
+                    
+                    case "/system/projects":
+                        return GetProjectMetrics();
+                    
+                    case "/system/endpoints":
+                        return GetEndpointMetrics();
+                    
+                    case "/system/performance":
+                        return GetPerformanceMetrics();
+                    
+                    case "/system/sessions":
+                        return GetSessionMetrics();
+                    
+                    case "/system/languages":
+                        return GetLanguageMetrics();
+                    
+                    case "/system/uptime":
+                        return GetUptimeMetrics();
+                    
+                    case "/system/storage":
+                        return GetStorageMetrics();
+                    
+                    case "/system/sandbox":
+                        return GetSandboxMetrics();
+                    
+                    case "/system/overview":
+                        return GetOverviewMetrics();
+                    
+                    default:
+                        return GetAvailableSystemEndpoints();
+                }
+            }
+            catch (Exception ex)
+            {
+                return $"Error retrieving metrics: {ex.Message}";
+            }
+        }
+
+        private static string GetConnectionMetrics()
+        {
+            var connections = connectionManager.ListConnections();
+            var connectionsByType = connections.GroupBy(c => c.Type).ToDictionary(g => g.Key, g => g.Count());
+            
+            var sb = new StringBuilder();
+            sb.AppendLine("=== CONNECTION METRICS ===");
+            sb.AppendLine($"Total Active Connections: {connections.Count()}");
+            sb.AppendLine($"Timestamp: {DateTime.UtcNow:yyyy-MM-dd HH:mm:ss} UTC");
+            sb.AppendLine();
+            sb.AppendLine("Connections by Type:");
+            
+            foreach (var kvp in connectionsByType.OrderByDescending(x => x.Value))
+            {
+                sb.AppendLine($"  {kvp.Key}: {kvp.Value}");
+            }
+            
+            sb.AppendLine();
+            sb.AppendLine("Recent Connections:");
+            var recentConnections = connections
+                .OrderByDescending(c => c.ConnectedAt)
+                .Take(5);
+            
+            foreach (var conn in recentConnections)
+            {
+                var age = DateTime.UtcNow - conn.ConnectedAt;
+                sb.AppendLine($"  {conn.Id} ({conn.Type}) - {age.TotalMinutes:F1}m ago");
+            }
+            
+            return sb.ToString();
+        }
+
+        private static string GetProjectMetrics()
+        {
+            var projectsDir = Core.GetPath(Core.CodeDir);
+            var sb = new StringBuilder();
+            sb.AppendLine("=== PROJECT METRICS ===");
+            sb.AppendLine($"Timestamp: {DateTime.UtcNow:yyyy-MM-dd HH:mm:ss} UTC");
+            sb.AppendLine();
+            
+            if (!Directory.Exists(projectsDir))
+            {
+                sb.AppendLine("Projects directory not found");
+                return sb.ToString();
+            }
+            
+            var projects = Directory.GetDirectories(projectsDir);
+            sb.AppendLine($"Total Projects: {projects.Length}");
+            sb.AppendLine();
+            
+            var languageCounts = new Dictionary<string, int>();
+            var totalFiles = 0;
+            long totalSize = 0;
+            
+            foreach (var project in projects)
+            {
+                var language = DetectLanguage(project);
+                if (!string.IsNullOrEmpty(language))
+                {
+                    languageCounts[language] = languageCounts.GetValueOrDefault(language, 0) + 1;
+                }
+                
+                var files = Directory.GetFiles(project, "*", SearchOption.AllDirectories);
+                totalFiles += files.Length;
+                totalSize += files.Sum(f => new FileInfo(f).Length);
+            }
+            
+            sb.AppendLine($"Total Files: {totalFiles}");
+            sb.AppendLine($"Total Size: {totalSize / 1024 / 1024:F2} MB");
+            sb.AppendLine();
+            sb.AppendLine("Projects by Language:");
+            
+            foreach (var kvp in languageCounts.OrderByDescending(x => x.Value))
+            {
+                sb.AppendLine($"  {kvp.Key}: {kvp.Value}");
+            }
+            
+            sb.AppendLine();
+            sb.AppendLine("Recent Projects:");
+            var recentProjects = projects
+                .Select(p => new { Path = p, Modified = Directory.GetLastWriteTime(p) })
+                .OrderByDescending(p => p.Modified)
+                .Take(5);
+            
+            foreach (var project in recentProjects)
+            {
+                var name = Path.GetFileName(project.Path);
+                var age = DateTime.UtcNow - project.Modified;
+                var language = DetectLanguage(project.Path);
+                sb.AppendLine($"  {name} ({language}) - {age.TotalHours:F1}h ago");
+            }
+            
+            return sb.ToString();
+        }
+
+        private static string GetEndpointMetrics()
+        {
+            var dynamicStats = Terminal.DynamicEndpointGenerator.GetStatistics();
+            var activeEndpoints = Terminal.DynamicEndpointGenerator.GetActiveEndpoints();
+            
+            var sb = new StringBuilder();
+            sb.AppendLine("=== ENDPOINT METRICS ===");
+            sb.AppendLine($"Timestamp: {DateTime.UtcNow:yyyy-MM-dd HH:mm:ss} UTC");
+            sb.AppendLine();
+            sb.AppendLine("Static Endpoints:");
+            sb.AppendLine("  /code - Code submission");
+            sb.AppendLine("  /PMS - Project management");
+            sb.AppendLine("  /stop - Process termination");
+            sb.AppendLine("  /terminput - Terminal input");
+            sb.AppendLine("  /terminal/create - Terminal session creation");
+            sb.AppendLine("  /syntax - Syntax highlighting");
+            sb.AppendLine("  /syntax/lang - Language configuration");
+            sb.AppendLine("  /system/* - System metrics");
+            sb.AppendLine();
+            sb.AppendLine("Dynamic Endpoints:");
+            sb.AppendLine($"  Total: {dynamicStats.TotalEndpoints}");
+            sb.AppendLine($"  Active: {dynamicStats.ActiveEndpoints}");
+            sb.AppendLine($"  Total Connections: {dynamicStats.TotalConnections}");
+            sb.AppendLine($"  Average Age: {dynamicStats.AverageAge.TotalMinutes:F1} minutes");
+            sb.AppendLine();
+            sb.AppendLine("Active Dynamic Endpoints:");
+            
+            foreach (var endpoint in activeEndpoints.Take(10))
+            {
+                sb.AppendLine($"  {endpoint}");
+            }
+            
+            if (activeEndpoints.Count > 10)
+            {
+                sb.AppendLine($"  ... and {activeEndpoints.Count - 10} more");
+            }
+            
+            return sb.ToString();
+        }
+
+        private static string GetPerformanceMetrics()
+        {
+            var stats = metricsCollector.GetStats(DateTime.UtcNow.AddHours(-1)); // Last hour
+            
+            var sb = new StringBuilder();
+            sb.AppendLine("=== PERFORMANCE METRICS ===");
+            sb.AppendLine($"Timestamp: {DateTime.UtcNow:yyyy-MM-dd HH:mm:ss} UTC");
+            sb.AppendLine($"Period: Last 1 hour");
+            sb.AppendLine();
+            sb.AppendLine($"Total Executions: {stats.TotalExecutions}");
+            sb.AppendLine($"Successful Executions: {stats.SuccessfulExecutions}");
+            sb.AppendLine($"Success Rate: {(stats.TotalExecutions > 0 ? stats.SuccessfulExecutions * 100.0 / stats.TotalExecutions : 0):F1}%");
+            sb.AppendLine($"Average Execution Time: {stats.AverageExecutionTime.TotalSeconds:F2} seconds");
+            sb.AppendLine($"Average Memory Usage: {stats.AverageMemoryUsage:F1} MB");
+            sb.AppendLine();
+            sb.AppendLine("Language Performance:");
+            
+            foreach (var lang in stats.TopLanguages.Take(5))
+            {
+                sb.AppendLine($"  {lang.Key}: {lang.Value} executions");
+            }
+            
+            // Server resource usage (simplified)
+            var process = System.Diagnostics.Process.GetCurrentProcess();
+            sb.AppendLine();
+            sb.AppendLine("Server Resources:");
+            sb.AppendLine($"  Memory Usage: {process.WorkingSet64 / 1024 / 1024:F1} MB");
+            sb.AppendLine($"  CPU Time: {process.TotalProcessorTime.TotalSeconds:F1} seconds");
+            sb.AppendLine($"  Threads: {process.Threads.Count}");
+            
+            return sb.ToString();
+        }
+
+        private static string GetSessionMetrics()
+        {
+            var sessionStats = Terminal.SharedTerminalManager.GetStatistics();
+            var sessionDetails = Terminal.SharedTerminalManager.GetActiveSessionDetails();
+            
+            var sb = new StringBuilder();
+            sb.AppendLine("=== SESSION METRICS ===");
+            sb.AppendLine($"Timestamp: {DateTime.UtcNow:yyyy-MM-dd HH:mm:ss} UTC");
+            sb.AppendLine();
+            sb.AppendLine($"Total Sessions: {sessionStats.TotalSessions}");
+            sb.AppendLine($"Active Sessions: {sessionStats.ActiveSessions}");
+            sb.AppendLine($"Total Connections: {sessionStats.TotalConnections}");
+            sb.AppendLine($"Average Session Age: {sessionStats.AverageAge.TotalMinutes:F1} minutes");
+            sb.AppendLine();
+            sb.AppendLine("Active Sessions:");
+            
+            foreach (var session in sessionDetails.Take(10))
+            {
+                sb.AppendLine($"  {session}");
+            }
+            
+            if (sessionDetails.Count > 10)
+            {
+                sb.AppendLine($"  ... and {sessionDetails.Count - 10} more");
+            }
+            
+            return sb.ToString();
+        }
+
+        private static string GetLanguageMetrics()
+        {
+            var availableLanguages = syntaxHighlighter.GetAvailableLanguages();
+            
+            var sb = new StringBuilder();
+            sb.AppendLine("=== LANGUAGE METRICS ===");
+            sb.AppendLine($"Timestamp: {DateTime.UtcNow:yyyy-MM-dd HH:mm:ss} UTC");
+            sb.AppendLine();
+            sb.AppendLine($"Supported Languages: {availableLanguages.Count()}");
+            sb.AppendLine();
+            sb.AppendLine("Available Languages:");
+            
+            foreach (var lang in availableLanguages.OrderBy(x => x))
+            {
+                sb.AppendLine($"  {lang}");
+            }
+            
+            // Get usage stats from metrics
+            var stats = metricsCollector.GetStats(DateTime.UtcNow.AddDays(-7)); // Last week
+            sb.AppendLine();
+            sb.AppendLine("Usage (Last 7 days):");
+            
+            foreach (var lang in stats.TopLanguages.Take(10))
+            {
+                sb.AppendLine($"  {lang.Key}: {lang.Value} executions");
+            }
+            
+            return sb.ToString();
+        }
+
+        private static string GetUptimeMetrics()
+        {
+            var process = System.Diagnostics.Process.GetCurrentProcess();
+            var uptime = DateTime.UtcNow - process.StartTime.ToUniversalTime();
+            
+            var sb = new StringBuilder();
+            sb.AppendLine("=== UPTIME METRICS ===");
+            sb.AppendLine($"Timestamp: {DateTime.UtcNow:yyyy-MM-dd HH:mm:ss} UTC");
+            sb.AppendLine();
+            sb.AppendLine($"Server Started: {process.StartTime.ToUniversalTime():yyyy-MM-dd HH:mm:ss} UTC");
+            sb.AppendLine($"Uptime: {uptime.Days}d {uptime.Hours}h {uptime.Minutes}m {uptime.Seconds}s");
+            sb.AppendLine($"Total Uptime Hours: {uptime.TotalHours:F2}");
+            sb.AppendLine($"Version: {Core.GetVersion()}");
+            sb.AppendLine($"PMS Version: {PMS_VERSION}");
+            
+            return sb.ToString();
+        }
+
+        private static string GetStorageMetrics()
+        {
+            var sb = new StringBuilder();
+            sb.AppendLine("=== STORAGE METRICS ===");
+            sb.AppendLine($"Timestamp: {DateTime.UtcNow:yyyy-MM-dd HH:mm:ss} UTC");
+            sb.AppendLine();
+            
+            var directories = new[]
+            {
+                (Core.CodeDir, "Projects"),
+                (Core.BuildDir, "Build"),
+                (Core.TempDir, "Temporary"),
+                (Core.OutputDir, "Output"),
+                (Core.LogDir, "Logs"),
+                (Core.ExportDir, "Exports")
+            };
+            
+            foreach (var (dir, name) in directories)
+            {
+                var path = Core.GetPath(dir);
+                if (Directory.Exists(path))
+                {
+                    var dirInfo = new DirectoryInfo(path);
+                    var files = dirInfo.GetFiles("*", SearchOption.AllDirectories);
+                    var totalSize = files.Sum(f => f.Length);
+                    
+                    sb.AppendLine($"{name} Directory:");
+                    sb.AppendLine($"  Path: {path}");
+                    sb.AppendLine($"  Files: {files.Length}");
+                    sb.AppendLine($"  Size: {totalSize / 1024 / 1024:F2} MB");
+                    sb.AppendLine();
+                }
+                else
+                {
+                    sb.AppendLine($"{name} Directory: Not found");
+                    sb.AppendLine();
+                }
+            }
+            
+            return sb.ToString();
+        }
+
+        private static string GetSandboxMetrics()
+        {
+            var sb = new StringBuilder();
+            sb.AppendLine("=== SANDBOX METRICS ===");
+            sb.AppendLine($"Timestamp: {DateTime.UtcNow:yyyy-MM-dd HH:mm:ss} UTC");
+            sb.AppendLine();
+            sb.AppendLine("Available Sandbox Policies:");
+            sb.AppendLine("  default - Basic restrictions (512MB, 30s, no network)");
+            sb.AppendLine("  trusted - Extended permissions (2GB, 5min, network allowed)");
+            sb.AppendLine();
+            sb.AppendLine("Sandbox Status: Active");
+            sb.AppendLine("Security Level: Medium");
+            sb.AppendLine("Container Support: Available");
+            
+            return sb.ToString();
+        }
+
+        private static string GetOverviewMetrics()
+        {
+            var connections = connectionManager.ListConnections();
+            var sessionStats = Terminal.SharedTerminalManager.GetStatistics();
+            var dynamicStats = Terminal.DynamicEndpointGenerator.GetStatistics();
+            var process = System.Diagnostics.Process.GetCurrentProcess();
+            var uptime = DateTime.UtcNow - process.StartTime.ToUniversalTime();
+            
+            var sb = new StringBuilder();
+            sb.AppendLine("=== KODERUNNER SERVER OVERVIEW ===");
+            sb.AppendLine($"Timestamp: {DateTime.UtcNow:yyyy-MM-dd HH:mm:ss} UTC");
+            sb.AppendLine($"Version: {Core.GetVersion()} (PMS: {PMS_VERSION})");
+            sb.AppendLine($"Uptime: {uptime.Days}d {uptime.Hours}h {uptime.Minutes}m");
+            sb.AppendLine();
+            sb.AppendLine("CONNECTIONS:");
+            sb.AppendLine($"  Active: {connections.Count()}");
+            sb.AppendLine($"  Dynamic Endpoints: {dynamicStats.ActiveEndpoints}");
+            sb.AppendLine();
+            sb.AppendLine("SESSIONS:");
+            sb.AppendLine($"  Active Terminal Sessions: {sessionStats.ActiveSessions}");
+            sb.AppendLine($"  Session Connections: {sessionStats.TotalConnections}");
+            sb.AppendLine();
+            sb.AppendLine("PROJECTS:");
+            var projectsDir = Core.GetPath(Core.CodeDir);
+            var projectCount = Directory.Exists(projectsDir) ? Directory.GetDirectories(projectsDir).Length : 0;
+            sb.AppendLine($"  Total Projects: {projectCount}");
+            sb.AppendLine();
+            sb.AppendLine("PERFORMANCE:");
+            sb.AppendLine($"  Memory Usage: {process.WorkingSet64 / 1024 / 1024:F1} MB");
+            sb.AppendLine($"  Thread Count: {process.Threads.Count}");
+            sb.AppendLine();
+            sb.AppendLine("Available System Endpoints:");
+            sb.AppendLine("  /system/overview - This overview");
+            sb.AppendLine("  /system/connections - Connection details");
+            sb.AppendLine("  /system/projects - Project information");
+            sb.AppendLine("  /system/endpoints - Endpoint status");
+            sb.AppendLine("  /system/performance - Performance metrics");
+            sb.AppendLine("  /system/sessions - Session information");
+            sb.AppendLine("  /system/languages - Language support");
+            sb.AppendLine("  /system/uptime - Server uptime");
+            sb.AppendLine("  /system/storage - Storage usage");
+            sb.AppendLine("  /system/sandbox - Sandbox status");
+            
+            return sb.ToString();
+        }
+
+        private static string GetAvailableSystemEndpoints()
+        {
+            var sb = new StringBuilder();
+            sb.AppendLine("=== KODERUNNER SYSTEM METRICS ===");
+            sb.AppendLine($"Timestamp: {DateTime.UtcNow:yyyy-MM-dd HH:mm:ss} UTC");
+            sb.AppendLine();
+            sb.AppendLine("Available System Endpoints:");
+            sb.AppendLine("  /system/overview     - Complete server overview");
+            sb.AppendLine("  /system/connections  - Active WebSocket connections");
+            sb.AppendLine("  /system/projects     - Project statistics and information");
+            sb.AppendLine("  /system/endpoints    - Static and dynamic endpoint status");
+            sb.AppendLine("  /system/performance  - Execution performance metrics");
+            sb.AppendLine("  /system/sessions     - Terminal session information");
+            sb.AppendLine("  /system/languages    - Supported language details");
+            sb.AppendLine("  /system/uptime       - Server uptime and version");
+            sb.AppendLine("  /system/storage      - File system usage");
+            sb.AppendLine("  /system/sandbox      - Security sandbox status");
+            sb.AppendLine();
+            sb.AppendLine("Usage: Connect to any endpoint above to get real-time metrics");
+            sb.AppendLine("Send any message to refresh the metrics");
+            
+            return sb.ToString();
         }
 
         public static void EnsureFolders()

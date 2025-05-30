@@ -158,6 +158,7 @@ public class KodeRunnerTester extends JFrame {
         connectToEndpoint("/terminput");
         connectToEndpoint("/stop");
         connectToEndpoint("/terminal/create");
+        connectToEndpoint("/syntax");  // Add syntax highlighting endpoint
         
         // Update status to reflect terminal integration
         updateStatus("Connected to all endpoints - Terminal input integrated in Development tab");

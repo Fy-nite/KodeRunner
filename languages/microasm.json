@@ -1,0 +1,37 @@
+{
+  "name": "MicroASM",
+  "fileExtensions": [".masm", ".asm"],
+  "patterns": {
+    "instruction": {
+      "pattern": "\\b(MOV|ADD|SUB|MUL|DIV|JMP|JZ|JNZ|JG|JL|JGE|JLE|JNE|CMP|CALL|RET|PUSH|POP|AND|OR|XOR|NOT|SHL|SHR|INC|DEC|NEG|NOP|HLT|INT|IRET|DB|DW|DD|OUT|MNI)\\b",
+      "flags": "gi",
+      "color": "4FC3F7"
+    },
+    "register": {
+      "pattern": "\\b(RAX|RBX|RCX|RDX|RBP|RSP|RDI|RSI|RFLAGS|R[0-9]|R1[0-5])\\b",
+      "flags": "gi", 
+      "color": "66BB6A"
+    },
+    "label": {
+      "pattern": "^\\s*lbl\\s+\\w+",
+      "flags": "gim",
+      "color": "FFA726"
+    },
+    "number": {
+      "pattern": "\\b\\d+\\b",
+      "flags": "g",
+      "color": "AB47BC"
+    },
+    "comment": {
+      "pattern": ";.*$",
+      "flags": "gm",
+      "color": "757575"
+    },
+    "string": {
+      "pattern": "\"[^\"]*\"|'[^']*'",
+      "flags": "g",
+      "color": "4CAF50"
+    }
+  },
+  "tokenOrder": ["comment", "string", "label", "instruction", "register", "number"]
+}
