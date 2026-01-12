@@ -9,53 +9,6 @@ using Python.Runtime;
 
 
 
-[Runnable("microasm", "j-masm", 0)]
-public class MicroASMRunnable : IRunnable
-{
-    public string Name => "microasm";
-    public string Language => "MASM";
-    public int Priority => 0;
-    public string description => "Executes MicroASM projects with jmasm interpreter";
-
-    public void Execute(Provider.ISettingsProvider settings)
-    {
-        Console.WriteLine("Running MicroASM project");
-
-        var terminalProcess = new TerminalProcess();
-
-        // Capture the PMS WebSocket from settings
-        WebSocket pmsWebSocket = settings.PmsWebSocket;
-
-        terminalProcess.OnOutput += async (output) =>
-        {
-            // Always output to console for CLI mode
-            Console.Write(output);
-            
-            // Also send to WebSocket if available (WebSocket mode)
-            if (pmsWebSocket != null && pmsWebSocket.State == WebSocketState.Open)
-            {
-                var bytes = Encoding.UTF8.GetBytes(output);
-                // sleep for a few milis
-                await Task.Delay(50); // Adjust delay as needed
-                // Send the output to the PMS WebSocket
-                await pmsWebSocket.SendAsync(
-                    new ArraySegment<byte>(bytes),
-                    WebSocketMessageType.Text,
-                    true,
-                    CancellationToken.None
-                );
-            }
-        };
-
-        var codePath = Path.Combine(Core.RootDir, Core.CodeDir, settings.ProjectName);
-        var mainFilePath = Path.Combine(codePath, settings.Main_File);
-        var runCommand = $"jmasm \"{mainFilePath}\"";
-        Console.WriteLine(runCommand);
-
-        terminalProcess.ExecuteCommand(runCommand).Wait();
-    }
-}
-
 // dotnet runnable with metadata
 [Runnable("dotnet", "csharp", 1)]
 public class DotNetRunnable : IRunnable
@@ -395,6 +348,52 @@ public class NodeJsRunnable : IRunnable
         terminalProcess.ExecuteCommand(runCommand).Wait();
     }
 }
+
+[Runnable("cpp", "g++", 0)]
+public class CPPRunnable : IRunnable
+{
+    public string Name => "cpp";
+    public string Language => "cpp";
+    public int Priority => 0; 
+    public string description => "Executes C++ projects";
+    public void Execute(Provider.ISettingsProvider settings)
+    {
+        Console.WriteLine("Running C++ project");
+        var terminalProcess = new TerminalProcess();
+        WebSocket pmsWebSocket = settings.PmsWebSocket;
+        terminalProcess.OnOutput += async (output) =>
+        {
+            // Always output to console for CLI mode
+            Console.Write(output);
+            
+            // Also send to WebSocket if available (WebSocket mode)
+            if (pmsWebSocket != null && pmsWebSocket.State == WebSocketState.Open)
+            {
+                var bytes = Encoding.UTF8.GetBytes(output);
+                await pmsWebSocket.SendAsync(
+                    new ArraySegment<byte>(bytes),
+                    WebSocketMessageType.Text,
+                    true,
+                    CancellationToken.None
+                );
+            }
+        };
+        var codePath = Path.Combine(Core.RootDir, Core.CodeDir, settings.ProjectName);
+        var outputFilePath = Path.Combine(codePath, settings.Output);
+        var mainFilePath = Path.Combine(codePath, settings.Main_File);
+        if (terminalProcess.ExecuteCommand($"clang++ -o \"{outputFilePath}\" \"{mainFilePath}\"").Result != 0)
+        {
+            terminalProcess.ExecuteCommand($"g++ -o \"{outputFilePath}\" \"{mainFilePath}\"").Wait();
+        }
+        if (settings.Run_On_Build)
+        {
+            terminalProcess.ExecuteCommand($"echo '\u001b[32m Running program...\u001b[0m'").Wait();
+            terminalProcess.ExecuteCommand($"\"{outputFilePath}\"").Wait();
+        }
+    }
+}
+
+
 [Runnable("c", "gcc", 0)]
 public class CRunnable : IRunnable
 {
