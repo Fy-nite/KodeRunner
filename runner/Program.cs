@@ -366,6 +366,10 @@ namespace KodeRunner
             var Project_Output = "";
             var Run_On_Build = false;
 
+            // Dedupe identical PMS messages (the client may re-send the same project)
+            var lastPmsMessage = "";
+            var lastPmsMessageTime = DateTime.MinValue;
+
             /*
             template for the json message
              {
@@ -407,6 +411,21 @@ namespace KodeRunner
                             await memoryStream.WriteAsync(buffer, 0, result.Count);
                             _ = memoryStream.Seek(0, SeekOrigin.Begin);
                             var message = await ReadFromMemoryStream(memoryStream);
+
+                            // Ignore duplicate copies of the same message sent within
+                            // the window. The client re-sends the identical project
+                            // message repeatedly (retries, multiple connections).
+                            // if (
+                            //     message == lastPmsMessage
+                            //     && (DateTime.UtcNow - lastPmsMessageTime).TotalSeconds < 600
+                            // )
+                            // {
+                            //     Logger.Log("Ignoring duplicate PMS message", "Warning");
+                            //     continue;
+                            // }
+                            lastPmsMessage = message;
+                            lastPmsMessageTime = DateTime.UtcNow;
+
                             Logger.Log($"Received message: {message}");
                             // we now have the json message in the message variable
                             // we can now parse it into a dictionary
